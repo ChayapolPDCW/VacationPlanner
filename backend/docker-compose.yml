@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: ["node", "server.js"]
+
+
+  db:
+    image: postgres:16-alpine  # Lightweight PostgreSQL image
+    container_name: postgres
+    environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Persistent storage for PostgreSQL data
+    ports:
+      - "5432:5432"  # Map PostgreSQL container port 5432 to host port 5432
+
+volumes:
+  postgres_data:  # Define a volume for PostgreSQL persistent data
