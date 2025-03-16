@@ -10,17 +10,27 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-    command: ["node", "server.js"]
+      - PORT=${PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - CHOKIDAR_USEPOLLING=true
+    command: ["nodemon", "-L", "src/index.js"]
+    depends_on:
+      - db
+    restart: unless-stopped
 
 
-  db:
+  db: 
     image: postgres:16-alpine  # Lightweight PostgreSQL image
     container_name: postgres
     environment:
-      POSTGRES_HOST: localhost
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_HOST: ${DB_HOST}
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data  # Persistent storage for PostgreSQL data
     ports:
