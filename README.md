@@ -11,3 +11,5 @@ BACKEND
 - nodemon
 - express
 - body-parser
+- bcrypt
+- joi
