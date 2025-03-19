@@ -5,11 +5,12 @@ import pool from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import errorHandling from "./middlewares/errorHandler.js";
 import createUserTable from "./data/createUserTable.js";
-
-
+import authRoutes from "./routes/authRoutes.js";
+import bodyParser from "body-parser";
+// import createTravelPlanTable from "./data/createTravelPlan.js";
 dotenv.config();
 
-const app = express();
+const app = express(); 
 const port = process.env.PORT || 5000;
 
 
@@ -22,25 +23,28 @@ app.use(errorHandling);
 // Routes
 app.use("/api/user", userRoutes);
 
+app.use(bodyParser.json());
+app.use("/api/auth", authRoutes);
+
 // Create user table before starting the server
 createUserTable();
 
 
+// createTravelPlanTable();
 
 // Test database connection
-app.get("/", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT current_database()");
-    res.send(`The database name is: ${result.rows[0].current_database}`);
-  } catch (error) {
-    console.error("Database query error:", error);
-    res.status(500).send(`Database error: ${error.message}`);
-  }
-});
+// app.get("/", async (req, res) => {
+//   try {
+//     const result = await pool.query("SELECT current_database()");
+//     res.send(`The database name is: ${result.rows[0].current_database}`);
+//   } catch (error) {
+//     console.error("Database query error:", error);
+//     res.status(500).send(`Database error: ${error.message}`);
+//   }
+// });
 
 
-
-// Error handling middleware
+// Error handling middleware 
 app.use(errorHandling);
 // Start the server
 app.listen(port, () => {
