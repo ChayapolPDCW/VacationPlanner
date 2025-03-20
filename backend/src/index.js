@@ -1,12 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import pool from "./config/db.js";
-import userRoutes from "./routes/userRoutes.js";
+// import userRoutes from "./routes/userRoutes.js";
 import errorHandling from "./middlewares/errorHandler.js";
-import createUserTable from "./data/createUserTable.js";
-import authRoutes from "./routes/authRoutes.js";
-import bodyParser from "body-parser";
+// import createUserTable from "./data/createUserTable.js";
+// import authRoutes from "./routes/authRoutes.js";
+// import bodyParser from "body-parser";
 // import createTravelPlanTable from "./data/createTravelPlan.js";
 dotenv.config();
 
@@ -21,13 +20,8 @@ app.use(cors());
 //error handling
 app.use(errorHandling);
 // Routes
-app.use("/api/user", userRoutes);
 
-app.use(bodyParser.json());
-app.use("/api/auth", authRoutes);
 
-// Create user table before starting the server
-createUserTable();
 
 
 // createTravelPlanTable();
