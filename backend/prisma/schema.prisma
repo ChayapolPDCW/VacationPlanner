@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -16,4 +17,5 @@ model User {
   total_like_received Int? @default(0)
   current_rank String @default("Beginner")
   createdAt DateTime @default(now())
+  ProfilePicture String? 
 }
