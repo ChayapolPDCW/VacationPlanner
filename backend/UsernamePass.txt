@@ -1,0 +1,15 @@
+{
+    "username": "testuser",
+    "email": "test@example.com",
+    "password": "password123",
+    "confirmPassword": "password123"
+}
+
+ไว้ใช้ทดสอบ
+
+{
+    "username": "Mark Yaikai",
+    "email": "Mark@example.com",
+    "password": "password123",
+    "confirmPassword": "password123"
+}

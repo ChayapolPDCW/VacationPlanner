@@ -1,67 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-
 const prisma = new PrismaClient();
 
-// Create User (Register)
-export const createUser = async (req, res) => {
-    try {
-        const { username, email, password } = req.body;
-
-        // Validate input
-        if (!username || !email || !password) {
-            return res.status(400).json({
-                status: "error",
-                message: "กรุณากรอกข้อมูลให้ครบถ้วน (username, email, password)"
-            });
-        }
-
-        // Check existing user
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { email },
-                    { username }
-                ]
-            }
-        });
-
-        if (existingUser) {
-            return res.status(400).json({
-                status: "error",
-                message: "อีเมลหรือชื่อผู้ใช้นี้มีในระบบแล้ว"
-            });
-        }
-
-        // Create user
-        const newUser = await prisma.user.create({
-            data: {
-                username,
-                email,
-                password
-            },
-            select: {
-                id: true,
-                username: true,
-                email: true,
-                createdAt: true
-            }
-        });
-
-        res.status(201).json({
-            status: "success",
-            message: "สร้างบัญชีผู้ใช้สำเร็จ",
-            data: newUser
-        });
-
-    } catch (error) {
-        console.error("Create user error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "เกิดข้อผิดพลาดในการสร้างบัญชีผู้ใช้",
-            error: error.message
-        });
-    }
-};
 
 // Get All Users
 export const getAllUsers = async (req, res) => {
