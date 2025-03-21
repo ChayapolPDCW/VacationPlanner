@@ -4,40 +4,48 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
 
-// Load environment variables from .env
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors()); // Allow frontend to connect
-app.use(express.json()); // Parse JSON requests
+app.use(cors());
+app.use(express.json());
 
-// Database connection
+// Set up storage for uploaded photos
+const storage = multer.diskStorage({
+  destination: './uploads/',
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage });
+
+// Serve uploaded photos statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-// Test database connection
 pool.connect((err, client, release) => {
   if (err) {
     console.error('Error connecting to database:', err.stack);
-    process.exit(1); // Exit if database connection fails
+    process.exit(1);
   }
   console.log('Connected to PostgreSQL database');
   release();
 });
 
-// Test endpoint
 app.get('/', (req, res) => {
   res.send('hello from backend!');
 });
 
-// Authentication middleware (to protect routes)
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ message: 'Authentication token required' });
@@ -52,7 +60,6 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Register endpoint
 app.post('/api/auth/register', async (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
@@ -67,7 +74,7 @@ app.post('/api/auth/register', async (req, res) => {
     );
     res.status(201).json({ message: 'User created', userId: result.rows[0].id });
   } catch (error) {
-    if (error.code === '23505') { // Unique constraint violation (e.g., duplicate email)
+    if (error.code === '23505') {
       res.status(400).json({ message: 'Email or username already exists' });
     } else {
       res.status(500).json({ message: 'Error creating user', error: error.message });
@@ -75,7 +82,6 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Login endpoint
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -89,17 +95,28 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token });
+    const token = jwt.sign({ userId: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).json({ token, username: user.username });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error: error.message });
   }
 });
 
-// Create plan endpoint (updated for travel_plans table with end_location)
+// Fetch user plans
+app.get('/api/plans/user', authenticateToken, async (req, res) => {
+  const userId = req.user.userId;
+
+  try {
+    const result = await pool.query('SELECT * FROM travel_plans WHERE user_id = $1', [userId]);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user plans', error: error.message });
+  }
+});
+
 app.post('/api/plans/create', authenticateToken, async (req, res) => {
   const { title, startLocation, endLocation, startTime, endTime } = req.body;
-  const userId = req.user.userId; // From JWT
+  const userId = req.user.userId;
 
   if (!title || !startLocation || !startTime || !endTime) {
     return res.status(400).json({ message: 'Title, start location, start time, and end time are required' });
@@ -116,30 +133,52 @@ app.post('/api/plans/create', authenticateToken, async (req, res) => {
   }
 });
 
-// Add itinerary item (updated for place table)
+// Modify the POST /api/plans/:planId/itinerary endpoint to return the place ID
 app.post('/api/plans/:planId/itinerary', authenticateToken, async (req, res) => {
   const { planId } = req.params;
   const { placeName, placeType, openTime, closeTime, date, orderIndex, lat, lng } = req.body;
   const userId = req.user.userId;
 
   try {
-    // Verify the plan belongs to the user
+    const planResult = await pool.query('SELECT * FROM travel_plans WHERE id = $1 AND user_id = $2', [planId, userId]);
+    if (planResult.rows.length === 0) {
+      return res.status(403).json({ message: 'Unauthorized to modify this plan' });
+    }
+
+    const placeResult = await pool.query(
+      'INSERT INTO place (plan_id, place_name, place_type, open_time, close_time, date, visit_order, lat, lng) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id',
+      [planId, placeName, placeType, openTime, closeTime, date, orderIndex, lat, lng]
+    );
+
+    res.status(201).json({ message: 'Itinerary item added', placeId: placeResult.rows[0].id });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding itinerary item', error: error.message });
+  }
+});
+
+// Add a PUT endpoint to update the visit_order of a place
+app.put('/api/plans/:planId/itinerary/:placeId', authenticateToken, async (req, res) => {
+  const { planId, placeId } = req.params;
+  const { visitOrder } = req.body;
+  const userId = req.user.userId;
+
+  try {
     const planResult = await pool.query('SELECT * FROM travel_plans WHERE id = $1 AND user_id = $2', [planId, userId]);
     if (planResult.rows.length === 0) {
       return res.status(403).json({ message: 'Unauthorized to modify this plan' });
     }
 
     await pool.query(
-      'INSERT INTO place (plan_id, place_name, place_type, open_time, close_time, visit_order, lat, lng) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-      [planId, placeName, placeType, openTime, closeTime, orderIndex, lat, lng]
+      'UPDATE place SET visit_order = $1 WHERE id = $2 AND plan_id = $3',
+      [visitOrder, placeId, planId]
     );
-    res.status(201).json({ message: 'Itinerary item added' });
+
+    res.status(200).json({ message: 'Place order updated' });
   } catch (error) {
-    res.status(500).json({ message: 'Error adding itinerary item', error: error.message });
+    res.status(500).json({ message: 'Error updating place order', error: error.message });
   }
 });
 
-// Like a plan (updated for like_plans table)
 app.post('/api/plans/:planId/like', authenticateToken, async (req, res) => {
   const { planId } = req.params;
   const userId = req.user.userId;
@@ -155,17 +194,18 @@ app.post('/api/plans/:planId/like', authenticateToken, async (req, res) => {
   }
 });
 
-// Get public plans (sorted by likes)
 app.get('/api/plans/public', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT tp.*, COUNT(lp.id) as like_count
+      SELECT tp.*, u.username, COUNT(lp.id) as like_count
       FROM travel_plans tp
+      JOIN "user" u ON tp.user_id = u.id
       LEFT JOIN like_plans lp ON tp.id = lp.plan_id
       LEFT JOIN travel_journal tj ON tp.id = tj.plan_id
       WHERE tj.is_public = TRUE
-      GROUP BY tp.id
+      GROUP BY tp.id, u.username
       ORDER BY like_count DESC
+      LIMIT 3
     `);
     res.status(200).json(result.rows);
   } catch (error) {
@@ -173,11 +213,50 @@ app.get('/api/plans/public', async (req, res) => {
   }
 });
 
-// Create/Update journal (updated for travel_journal table)
-app.post('/api/plans/:planId/journal', authenticateToken, async (req, res) => {
+// Fetch popular places
+app.get('/api/places/popular', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.*, u.username, tp.start_time, tp.end_time, COUNT(lp.id) as like_count
+      FROM place p
+      JOIN travel_plans tp ON p.plan_id = tp.id
+      JOIN "user" u ON tp.user_id = u.id
+      LEFT JOIN like_plans lp ON tp.id = lp.plan_id
+      LEFT JOIN travel_journal tj ON tp.id = tj.plan_id
+      WHERE tj.is_public = TRUE
+      GROUP BY p.id, u.username, tp.start_time, tp.end_time
+      ORDER BY like_count DESC
+      LIMIT 3
+    `);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching popular places', error: error.message });
+  }
+});
+
+// Fetch public journals
+app.get('/api/journals/public', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT tj.*, u.username, tp.title
+      FROM travel_journal tj
+      JOIN "user" u ON tj.user_id = u.id
+      JOIN travel_plans tp ON tj.plan_id = tp.id
+      WHERE tj.is_public = TRUE
+      ORDER BY tj.created_at DESC
+      LIMIT 3
+    `);
+    res.status(200).json(result.rows);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching public journals', error: error.message });
+  }
+});
+
+app.post('/api/plans/:planId/journal', authenticateToken, upload.array('photos', 10), async (req, res) => {
   const { planId } = req.params;
-  const { title, content, isPublic } = req.body;
+  const { title, content, isPublic, rating, favoriteMoment, tips } = req.body;
   const userId = req.user.userId;
+  const photos = req.files ? req.files.map(file => `/uploads/${file.filename}`) : [];
 
   try {
     const planResult = await pool.query('SELECT * FROM travel_plans WHERE id = $1 AND user_id = $2', [planId, userId]);
@@ -185,17 +264,28 @@ app.post('/api/plans/:planId/journal', authenticateToken, async (req, res) => {
       return res.status(403).json({ message: 'Unauthorized to modify this plan' });
     }
 
-    await pool.query(
-      'INSERT INTO travel_journal (plan_id, user_id, title, content, is_public) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (plan_id) DO UPDATE SET title = $3, content = $4, is_public = $5',
-      [planId, userId, title, content, isPublic]
+    // Insert or update the journal entry
+    const journalResult = await pool.query(
+      'INSERT INTO travel_journal (plan_id, user_id, title, content, is_public, rating, favorite_moment, tips) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (plan_id) DO UPDATE SET title = $3, content = $4, is_public = $5, rating = $6, favorite_moment = $7, tips = $8 RETURNING id',
+      [planId, userId, title, content, isPublic, rating, favoriteMoment, tips]
     );
+    const journalId = journalResult.rows[0].id;
+
+    // Insert photos into journal_photo table
+    if (photos.length > 0) {
+      const photoValues = photos.map(photo => [journalId, photo]);
+      await pool.query(
+        'INSERT INTO journal_photo (journal_id, photo_url) VALUES ${photoValues.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ')}',
+        photoValues.flat()
+      );
+    }
+
     res.status(201).json({ message: 'Journal saved' });
   } catch (error) {
     res.status(500).json({ message: 'Error saving journal', error: error.message });
   }
 });
 
-// Start the server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
