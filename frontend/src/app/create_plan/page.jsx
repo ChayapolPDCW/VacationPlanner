@@ -4,51 +4,137 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { format, differenceInDays, addDays } from "date-fns";
-import { GoogleMap, LoadScript, Marker, Autocomplete } from "@react-google-maps/api";
+import {
+    GoogleMap,
+    LoadScript,
+    Marker,
+    Autocomplete,
+    DirectionsRenderer,
+} from "@react-google-maps/api";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-// import "../styles.css"; // Ensure this exists for Autocomplete dropdown styling
+// import "./styles.css";
 
 export default function CreatePlanPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({
         destination: "",
-        startDate: new Date(), // Set to current day (March 23, 2025)
-        endDate: new Date(), // Initially same as start date
-        center: { lat: 0, lng: 0 }, // Will be updated after destination selection
+        startDate: new Date(),
+        endDate: new Date(),
+        center: { lat: 0, lng: 0 },
     });
     const [itinerary, setItinerary] = useState([]);
     const [error, setError] = useState("");
     const [isClient, setIsClient] = useState(false);
     const [isMapLoaded, setIsMapLoaded] = useState(false);
     const [mapError, setMapError] = useState(null);
-    const [step, setStep] = useState(1); // Step 1: Select destination, Step 2: Select dates, Step 3: Show itinerary
+    const [step, setStep] = useState(1);
+    const [directions, setDirections] = useState({});
+    const [activeDayIndex, setActiveDayIndex] = useState(null);
     const autocompleteRef = useRef(null);
     const placeAutocompleteRefs = useRef([]);
+    const placeInputRefs = useRef([]);
+
+    // colors for each day 
+    const dayColors = [
+        "#FF0000", // Red
+        "#0000FF", // Blue
+        "#008000", // Green
+        "#FFA500", // Orange
+        "#800080", // Purple
+        "#FFFF00", // Yellow
+    ];
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // Update itinerary when dates change (after destination is selected)
     useEffect(() => {
-        if (step === 3) {
+        if (step >= 2) {
             const days = differenceInDays(formData.endDate, formData.startDate) + 1;
             const newItinerary = [];
             for (let i = 0; i < days; i++) {
                 const date = addDays(formData.startDate, i);
                 newItinerary.push({
                     date,
-                    places: [], // Start with empty places
+                    places: itinerary[i]?.places || [],
                 });
             }
             setItinerary(newItinerary);
             placeAutocompleteRefs.current = newItinerary.map(() => null);
+            placeInputRefs.current = newItinerary.map(() => null);
+            updateDirections(newItinerary);
         }
     }, [formData.startDate, formData.endDate, step]);
+
+    const updateDirections = (updatedItinerary) => {
+        const directionsService = new window.google.maps.DirectionsService();
+        const newDirections = {};
+
+        updatedItinerary.forEach((day, dayIndex) => {
+            const places = day.places;
+            if (places.length < 2) {
+                newDirections[dayIndex] = null;
+                return;
+            }
+
+            const waypoints = places.slice(1, -1).map((place) => ({
+                location: { lat: place.lat, lng: place.lng },
+                stopover: true,
+            }));
+
+            directionsService.route(
+                {
+                    origin: { lat: places[0].lat, lng: places[0].lng },
+                    destination: { lat: places[places.length - 1].lat, lng: places[places.length - 1].lng },
+                    waypoints,
+                    travelMode: window.google.maps.TravelMode.DRIVING,
+                },
+                (result, status) => {
+                    if (status === window.google.maps.DirectionsStatus.OK) {
+                        newDirections[dayIndex] = result;
+
+                        const newItinerary = [...updatedItinerary];
+                        const legs = result.routes[0].legs;
+                        newItinerary[dayIndex].places.forEach((place, index) => {
+                            if (index < places.length - 1) {
+                                const leg = legs[index];
+                                place.travelTime = `${leg.duration.text}, ${leg.distance.text}`;
+                            } else {
+                                place.travelTime = "N/A";
+                            }
+                        });
+                        setItinerary(newItinerary);
+                    } else {
+                        console.error("Directions request failed:", status);
+                        newDirections[dayIndex] = null;
+                        const newItinerary = [...updatedItinerary];
+                        newItinerary[dayIndex].places.forEach((place, index) => {
+                            if (index < places.length - 1) {
+                                place.travelTime = "Failed to calculate";
+                            } else {
+                                place.travelTime = "N/A";
+                            }
+                        });
+                        setItinerary(newItinerary);
+                    }
+                    setDirections({ ...newDirections });
+                }
+            );
+        });
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
+    };
+
+    const handleStartDateChange = (e) => {
+        const newStartDate = new Date(e.target.value);
+        if (formData.endDate < newStartDate) {
+            setFormData({ ...formData, startDate: newStartDate, endDate: newStartDate });
+        } else {
+            setFormData({ ...formData, startDate: newStartDate });
+        }
     };
 
     const handleEndDateChange = (e) => {
@@ -72,7 +158,9 @@ export default function CreatePlanPage() {
                     destination: place.formatted_address || place.name,
                     center: { lat, lng },
                 });
-                setStep(2); // Move to date selection step
+                if (step === 1) {
+                    setStep(2);
+                }
             } else {
                 setError("Please select a valid destination from the suggestions");
             }
@@ -98,10 +186,24 @@ export default function CreatePlanPage() {
                 const updatedItinerary = [...itinerary];
                 updatedItinerary[dayIndex].places.push(newPlace);
                 setItinerary(updatedItinerary);
+                updateDirections(updatedItinerary);
+
+                if (placeInputRefs.current[dayIndex]) {
+                    placeInputRefs.current[dayIndex].value = "";
+                }
             } else {
                 console.log("No geometry available for this place");
             }
         }
+    };
+
+    const handleDeletePlace = (dayIndex, placeId) => {
+        const updatedItinerary = [...itinerary];
+        updatedItinerary[dayIndex].places = updatedItinerary[dayIndex].places.filter(
+            (place) => place.id !== placeId
+        );
+        setItinerary(updatedItinerary);
+        updateDirections(updatedItinerary);
     };
 
     const handleDragEnd = (result) => {
@@ -112,6 +214,7 @@ export default function CreatePlanPage() {
         const [reorderedPlace] = updatedItinerary[dayIndex].places.splice(result.source.index, 1);
         updatedItinerary[dayIndex].places.splice(result.destination.index, 0, reorderedPlace);
         setItinerary(updatedItinerary);
+        updateDirections(updatedItinerary);
     };
 
     const handleSubmit = async (e) => {
@@ -168,7 +271,7 @@ export default function CreatePlanPage() {
             return;
         }
         setError("");
-        setStep(3); // Move to itinerary step
+        setStep(3);
     };
 
     return (
@@ -189,107 +292,58 @@ export default function CreatePlanPage() {
                         </div>
                     ) : (
                         <div className="container mx-auto p-6">
-                            <h1 className="text-3xl font-bold mb-6">Create Plan</h1>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Left Side: Form and Itinerary */}
+                                <div>
+                                    <h1 className="text-3xl font-bold mb-6">Create Plan</h1>
 
-                            {/* Step 1: Select Destination */}
-                            {step === 1 && (
-                                <div className="bg-white p-6 rounded-lg shadow-md">
-                                    <div className="mb-4">
-                                        <label className="block text-gray-700 mb-2">
-                                            Where do you want to go?
-                                        </label>
-                                        {isMapLoaded ? (
-                                            <Autocomplete
-                                                onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
-                                                onPlaceChanged={handlePlaceSelect}
-                                            >
+                                    {/* Step 1: Select Destination */}
+                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                        <div className="mb-4">
+                                            <label className="block text-gray-700 mb-2">
+                                                Where do you want to go?
+                                            </label>
+                                            {isMapLoaded ? (
+                                                <Autocomplete
+                                                    onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
+                                                    onPlaceChanged={handlePlaceSelect}
+                                                >
+                                                    <input
+                                                        type="text"
+                                                        name="destination"
+                                                        value={formData.destination}
+                                                        onChange={handleChange}
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        placeholder="Enter a destination"
+                                                        required
+                                                    />
+                                                </Autocomplete>
+                                            ) : (
                                                 <input
                                                     type="text"
                                                     name="destination"
                                                     value={formData.destination}
                                                     onChange={handleChange}
                                                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    placeholder="Enter a destination"
-                                                    required
-                                                />
-                                            </Autocomplete>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                name="destination"
-                                                value={formData.destination}
-                                                onChange={handleChange}
-                                                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="Loading..."
-                                                disabled
-                                            />
-                                        )}
-                                    </div>
-                                    {error && <p className="text-red-600">{error}</p>}
-                                </div>
-                            )}
-
-                            {/* Step 2: Select Dates */}
-                            {step === 2 && (
-                                <div className="bg-white p-6 rounded-lg shadow-md">
-                                    <div className="mb-4">
-                                        <p className="text-gray-700 mb-2">
-                                            Selected Destination: <strong>{formData.destination}</strong>
-                                        </p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <label className="block text-gray-700 mb-2">
-                                                Start date
-                                            </label>
-                                            <input
-                                                type="date"
-                                                value={format(formData.startDate, "yyyy-MM-dd")}
-                                                className="w-full p-3 border rounded-lg bg-gray-100"
-                                                disabled
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-gray-700 mb-2">
-                                                End date
-                                            </label>
-                                            <input
-                                                type="date"
-                                                value={format(formData.endDate, "yyyy-MM-dd")}
-                                                onChange={handleEndDateChange}
-                                                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                min={format(formData.startDate, "yyyy-MM-dd")} // Prevent selecting dates before start date
-                                            />
-                                        </div>
-                                    </div>
-                                    {error && <p className="text-red-600">{error}</p>}
-                                    <button
-                                        onClick={handleDatesSubmit}
-                                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
-                                    >
-                                        Continue
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Step 3: Itinerary and Map */}
-                            {step === 3 && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Left Side: Form and Itinerary */}
-                                    <div>
-                                        <div className="bg-white p-6 rounded-lg shadow-md">
-                                            <div className="mb-4">
-                                                <label className="block text-gray-700 mb-2">
-                                                    Where do you want to go?
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    name="destination"
-                                                    value={formData.destination}
-                                                    className="w-full p-3 border rounded-lg bg-gray-100"
+                                                    placeholder="Loading..."
                                                     disabled
                                                 />
-                                            </div>
+                                            )}
+                                        </div>
+                                        {step < 2 && error && <p className="text-red-600">{error}</p>}
+                                        {step < 2 && (
+                                            <button
+                                                onClick={() => setStep(2)}
+                                                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                                            >
+                                                Continue
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Step 2: Select Dates */}
+                                    {step >= 2 && (
+                                        <div className="bg-white p-6 rounded-lg shadow-md mt-6">
                                             <div className="grid grid-cols-2 gap-4 mb-4">
                                                 <div>
                                                     <label className="block text-gray-700 mb-2">
@@ -298,8 +352,8 @@ export default function CreatePlanPage() {
                                                     <input
                                                         type="date"
                                                         value={format(formData.startDate, "yyyy-MM-dd")}
-                                                        className="w-full p-3 border rounded-lg bg-gray-100"
-                                                        disabled
+                                                        onChange={handleStartDateChange}
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     />
                                                 </div>
                                                 <div>
@@ -309,21 +363,35 @@ export default function CreatePlanPage() {
                                                     <input
                                                         type="date"
                                                         value={format(formData.endDate, "yyyy-MM-dd")}
-                                                        className="w-full p-3 border rounded-lg bg-gray-100"
-                                                        disabled
+                                                        onChange={handleEndDateChange}
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        min={format(formData.startDate, "yyyy-MM-dd")}
                                                     />
                                                 </div>
                                             </div>
+                                            {step < 3 && error && <p className="text-red-600">{error}</p>}
+                                            {step < 3 && (
+                                                <button
+                                                    onClick={handleDatesSubmit}
+                                                    className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                                                >
+                                                    Continue
+                                                </button>
+                                            )}
                                         </div>
+                                    )}
 
-                                        {/* Itinerary Section */}
-                                        <div className="bg-white p-6 rounded-lg shadow-md mt-6 max-h-[60vh] overflow-y-auto">
-                                            <h2 className="text-xl font-semibold mb-4">
-                                                Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 1} Days
-                                            </h2>
+                                    {/* Step 3: Itinerary Section */}
+                                    {step >= 3 && (
+                                        <div className="bg-white p-6 rounded-lg shadow-md mt-6 max-h-[60vh] overflow-y-auto pt-0">
+                                            <div className="sticky top-0 bg-white z-10 py-4 border-b">
+                                                <h2 className="text-2xl font-semibold">
+                                                    Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 1} Days
+                                                </h2>
+                                            </div>
                                             <DragDropContext onDragEnd={handleDragEnd}>
                                                 {itinerary.map((day, index) => (
-                                                    <div key={index} className="mb-6">
+                                                    <div key={index} className="mt-6">
                                                         <h3 className="text-lg font-medium text-blue-600">
                                                             {format(day.date, "d MMMM yyyy")}
                                                         </h3>
@@ -347,12 +415,15 @@ export default function CreatePlanPage() {
                                                                                     {...provided.dragHandleProps}
                                                                                     className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
                                                                                 >
+                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
+                                                                                        {placeIndex + 1}
+                                                                                    </div>
                                                                                     <img
                                                                                         src={place.image}
                                                                                         alt={place.name}
                                                                                         className="w-24 h-24 rounded-lg mr-4"
                                                                                     />
-                                                                                    <div>
+                                                                                    <div className="flex-1">
                                                                                         <h4 className="text-md font-medium">
                                                                                             {place.name}
                                                                                         </h4>
@@ -360,9 +431,15 @@ export default function CreatePlanPage() {
                                                                                             {place.description}
                                                                                         </p>
                                                                                         <p className="text-xs text-gray-500">
-                                                                                            {place.travelTime}
+                                                                                            Travel Time to Next: {place.travelTime}
                                                                                         </p>
                                                                                     </div>
+                                                                                    <button
+                                                                                        onClick={() => handleDeletePlace(index, place.id)}
+                                                                                        className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                                    >
+                                                                                        Delete
+                                                                                    </button>
                                                                                 </div>
                                                                             )}
                                                                         </Draggable>
@@ -374,14 +451,17 @@ export default function CreatePlanPage() {
                                                         {isMapLoaded ? (
                                                             <div className="flex items-center space-x-2 mb-3">
                                                                 <Autocomplete
-                                                                    onLoad={(autocomplete) =>
-                                                                        (placeAutocompleteRefs.current[index] = autocomplete)
-                                                                    }
+                                                                    onLoad={(autocomplete) => {
+                                                                        placeAutocompleteRefs.current[index] = autocomplete;
+                                                                    }}
                                                                     onPlaceChanged={() => handleAddPlace(index)}
                                                                 >
                                                                     <input
                                                                         type="text"
                                                                         placeholder="Search for a place"
+                                                                        ref={(el) => (placeInputRefs.current[index] = el)}
+                                                                        onFocus={() => setActiveDayIndex(index)}
+                                                                        onBlur={() => setActiveDayIndex(null)}
                                                                         className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                                     />
                                                                 </Autocomplete>
@@ -404,32 +484,67 @@ export default function CreatePlanPage() {
                                                 Save
                                             </button>
                                         </div>
-                                    </div>
+                                    )}
+                                </div>
 
-                                    {/* Right Side: Map */}
-                                    <div>
-                                        <div className="h-[80vh] rounded-lg shadow-md">
-                                            {isMapLoaded ? (
-                                                <GoogleMap
-                                                    mapContainerStyle={{ width: "100%", height: "100%" }}
-                                                    center={formData.center}
-                                                    zoom={14}
-                                                >
-                                                    {itinerary.flatMap((day) => day.places).map((place) => (
-                                                        <Marker
-                                                            key={place.id}
-                                                            position={{ lat: place.lat, lng: place.lng }}
-                                                            title={place.name}
-                                                        />
-                                                    ))}
-                                                </GoogleMap>
-                                            ) : (
-                                                <div>Loading map...</div>
-                                            )}
-                                        </div>
+                                {/* Right Side: Map */}
+                                <div>
+                                    <div className="h-[80vh] rounded-lg shadow-md">
+                                        {isMapLoaded ? (
+                                            <GoogleMap
+                                                mapContainerStyle={{ width: "100%", height: "100%" }}
+                                                center={formData.center}
+                                                zoom={formData.destination ? 14 : 2}
+                                            >
+                                                {itinerary
+                                                    .filter((day, dayIndex) => activeDayIndex === null || dayIndex === activeDayIndex)
+                                                    .flatMap((day, dayIndex) =>
+                                                        day.places.map((place, placeIndex) => (
+                                                            <Marker
+                                                                key={place.id}
+                                                                position={{ lat: place.lat, lng: place.lng }}
+                                                                label={{
+                                                                    text: (placeIndex + 1).toString(),
+                                                                    color: "white",
+                                                                    fontSize: "14px",
+                                                                    fontWeight: "bold",
+                                                                }}
+                                                                icon={{
+                                                                    path: window.google.maps.SymbolPath.CIRCLE,
+                                                                    fillColor: dayColors[dayIndex % dayColors.length],
+                                                                    fillOpacity: 1,
+                                                                    strokeColor: "#FFFFFF",
+                                                                    strokeWeight: 2,
+                                                                    scale: 12,
+                                                                }}
+                                                                title={place.name}
+                                                            />
+                                                        ))
+                                                    )}
+                                                {Object.keys(directions)
+                                                    .filter((dayIndex) => activeDayIndex === null || parseInt(dayIndex) === activeDayIndex)
+                                                    .map((dayIndex) =>
+                                                        directions[dayIndex] ? (
+                                                            <DirectionsRenderer
+                                                                key={dayIndex}
+                                                                directions={directions[dayIndex]}
+                                                                options={{
+                                                                    polylineOptions: {
+                                                                        strokeColor: dayColors[parseInt(dayIndex) % dayColors.length],
+                                                                        strokeOpacity: 0.8,
+                                                                        strokeWeight: 5,
+                                                                    },
+                                                                }}
+                                                            />
+                                                        ) : null
+                                                    )}
+                                            </GoogleMap>
+                                        ) : (
+                                            <div>Loading map...</div>
+                                        )}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </LoadScript>
