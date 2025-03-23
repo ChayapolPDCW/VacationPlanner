@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@googlemaps/react-wrapper": "^1.1.42",
     "@react-google-maps/api": "^2.20.6",
-    "axios": "^1.8.3",
+    "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.477.0",
     "next": "^15.1.7",
     "react": "^19.0.0",
