@@ -50,7 +50,7 @@ export default function CreatePlanPage() {
 
     useEffect(() => {
         if (step >= 2) {
-            const days = differenceInDays(formData.endDate, formData.startDate) + 1;
+            const days = differenceInDays(formData.endDate, formData.startDate) + 2;
             const newItinerary = [];
             for (let i = 0; i < days; i++) {
                 const date = addDays(formData.startDate, i);
@@ -225,10 +225,10 @@ export default function CreatePlanPage() {
             setError("Destination is required");
             return;
         }
-        if (formData.endDate < formData.startDate) {
-            setError("End Date cannot be before Start Date");
-            return;
-        }
+        // if (formData.endDate < formData.startDate) {
+        //     setError("End Date cannot be before Start Date");
+        //     return;
+        // }
 
         try {
             const token = localStorage.getItem("token");
@@ -248,7 +248,7 @@ export default function CreatePlanPage() {
             };
 
             const response = await axios.post(
-                "http://localhost:5000/api/plans",
+                "http://localhost:5000/api/createPlan",
                 planData,
                 {
                     headers: {
@@ -295,13 +295,13 @@ export default function CreatePlanPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Side: Form and Itinerary */}
                                 <div>
-                                    <h1 className="text-3xl font-bold mb-6">Create Plan</h1>
+                                    <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
 
                                     {/* Step 1: Select Destination */}
                                     <div className="bg-white p-6 rounded-lg shadow-md">
                                         <div className="mb-4">
                                             <label className="block text-gray-700 mb-2">
-                                                Where do you want to go?
+                                                Where do you want to go? (e.g. "New York, NY, USA")
                                             </label>
                                             {isMapLoaded ? (
                                                 <Autocomplete
@@ -313,7 +313,7 @@ export default function CreatePlanPage() {
                                                         name="destination"
                                                         value={formData.destination}
                                                         onChange={handleChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                                                         placeholder="Enter a destination"
                                                         required
                                                     />
@@ -353,7 +353,7 @@ export default function CreatePlanPage() {
                                                         type="date"
                                                         value={format(formData.startDate, "yyyy-MM-dd")}
                                                         onChange={handleStartDateChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                                                     />
                                                 </div>
                                                 <div>
@@ -364,7 +364,7 @@ export default function CreatePlanPage() {
                                                         type="date"
                                                         value={format(formData.endDate, "yyyy-MM-dd")}
                                                         onChange={handleEndDateChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                                                         min={format(formData.startDate, "yyyy-MM-dd")}
                                                     />
                                                 </div>
@@ -383,113 +383,117 @@ export default function CreatePlanPage() {
 
                                     {/* Step 3: Itinerary Section */}
                                     {step >= 3 && (
-                                        <div className="bg-white p-6 rounded-lg shadow-md mt-6 max-h-[60vh] overflow-y-auto pt-0">
-                                            <div className="sticky top-0 bg-white z-10 py-4 border-b">
-                                                <h2 className="text-2xl font-semibold">
-                                                    Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 1} Days
-                                                </h2>
-                                            </div>
-                                            <DragDropContext onDragEnd={handleDragEnd}>
-                                                {itinerary.map((day, index) => (
-                                                    <div key={index} className="mt-6">
-                                                        <h3 className="text-lg font-medium text-blue-600">
-                                                            {format(day.date, "d MMMM yyyy")}
-                                                        </h3>
-                                                        <Droppable droppableId={String(index)}>
-                                                            {(provided) => (
-                                                                <div
-                                                                    {...provided.droppableProps}
-                                                                    ref={provided.innerRef}
-                                                                    className="min-h-[50px]"
-                                                                >
-                                                                    {day.places.map((place, placeIndex) => (
-                                                                        <Draggable
-                                                                            key={place.id}
-                                                                            draggableId={String(place.id)}
-                                                                            index={placeIndex}
-                                                                        >
-                                                                            {(provided) => (
-                                                                                <div
-                                                                                    ref={provided.innerRef}
-                                                                                    {...provided.draggableProps}
-                                                                                    {...provided.dragHandleProps}
-                                                                                    className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
-                                                                                >
-                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
-                                                                                        {placeIndex + 1}
-                                                                                    </div>
-                                                                                    <img
-                                                                                        src={place.image}
-                                                                                        alt={place.name}
-                                                                                        className="w-24 h-24 rounded-lg mr-4"
-                                                                                    />
-                                                                                    <div className="flex-1">
-                                                                                        <h4 className="text-md font-medium">
-                                                                                            {place.name}
-                                                                                        </h4>
-                                                                                        <p className="text-sm text-gray-600">
-                                                                                            {place.description}
-                                                                                        </p>
-                                                                                        <p className="text-xs text-gray-500">
-                                                                                            Travel Time to Next: {place.travelTime}
-                                                                                        </p>
-                                                                                    </div>
-                                                                                    <button
-                                                                                        onClick={() => handleDeletePlace(index, place.id)}
-                                                                                        className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                        <div className="flex flex-col h-[calc(100vh-200px)]">
+                                            <div className="flex-1 bg-white p-6 rounded-lg shadow-md mt-6 overflow-y-auto pt-0">
+                                                <div className="sticky top-0 bg-white z-10 border-b -mx-6 px-6 pt-6">
+                                                    <h2 className="text-2xl font-semibold text-black mb-4">
+                                                        Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 2} Days
+                                                    </h2>
+                                                </div>
+                                                <DragDropContext onDragEnd={handleDragEnd}>
+                                                    {itinerary.map((day, index) => (
+                                                        <div key={index} className="mt-6">
+                                                            <h3 className="text-lg font-medium text-blue-600">
+                                                                {format(day.date, "d MMMM yyyy")}
+                                                            </h3>
+                                                            <Droppable droppableId={String(index)}>
+                                                                {(provided) => (
+                                                                    <div
+                                                                        {...provided.droppableProps}
+                                                                        ref={provided.innerRef}
+                                                                        className="min-h-[50px]"
+                                                                    >
+                                                                        {day.places.map((place, placeIndex) => (
+                                                                            <Draggable
+                                                                                key={place.id}
+                                                                                draggableId={String(place.id)}
+                                                                                index={placeIndex}
+                                                                            >
+                                                                                {(provided) => (
+                                                                                    <div
+                                                                                        ref={provided.innerRef}
+                                                                                        {...provided.draggableProps}
+                                                                                        {...provided.dragHandleProps}
+                                                                                        className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
                                                                                     >
-                                                                                        Delete
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
-                                                                        </Draggable>
-                                                                    ))}
-                                                                    {provided.placeholder}
+                                                                                        <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
+                                                                                            {placeIndex + 1}
+                                                                                        </div>
+                                                                                        <img
+                                                                                            src={place.image}
+                                                                                            alt={place.name}
+                                                                                            className="w-24 h-24 rounded-lg mr-4"
+                                                                                        />
+                                                                                        <div className="flex-1">
+                                                                                            <h4 className="text-md font-medium">
+                                                                                                {place.name}
+                                                                                            </h4>
+                                                                                            <p className="text-sm text-gray-600">
+                                                                                                {place.description}
+                                                                                            </p>
+                                                                                            <p className="text-xs text-gray-500">
+                                                                                                Travel Time to Next Location: {place.travelTime}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={() => handleDeletePlace(index, place.id)}
+                                                                                            className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                                        >
+                                                                                            Delete
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </Draggable>
+                                                                        ))}
+                                                                        {provided.placeholder}
+                                                                    </div>
+                                                                )}
+                                                            </Droppable>
+                                                            {isMapLoaded ? (
+                                                                <div className="flex items-center space-x-2 mb-3">
+                                                                    <Autocomplete
+                                                                        onLoad={(autocomplete) => {
+                                                                            placeAutocompleteRefs.current[index] = autocomplete;
+                                                                        }}
+                                                                        onPlaceChanged={() => handleAddPlace(index)}
+                                                                    >
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder="Search for a place"
+                                                                            ref={(el) => (placeInputRefs.current[index] = el)}
+                                                                            onFocus={() => setActiveDayIndex(index)}
+                                                                            onBlur={() => setActiveDayIndex(null)}
+                                                                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                                                                        />
+                                                                    </Autocomplete>
                                                                 </div>
+                                                            ) : (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Loading..."
+                                                                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    disabled
+                                                                />
                                                             )}
-                                                        </Droppable>
-                                                        {isMapLoaded ? (
-                                                            <div className="flex items-center space-x-2 mb-3">
-                                                                <Autocomplete
-                                                                    onLoad={(autocomplete) => {
-                                                                        placeAutocompleteRefs.current[index] = autocomplete;
-                                                                    }}
-                                                                    onPlaceChanged={() => handleAddPlace(index)}
-                                                                >
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Search for a place"
-                                                                        ref={(el) => (placeInputRefs.current[index] = el)}
-                                                                        onFocus={() => setActiveDayIndex(index)}
-                                                                        onBlur={() => setActiveDayIndex(null)}
-                                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                    />
-                                                                </Autocomplete>
-                                                            </div>
-                                                        ) : (
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Loading..."
-                                                                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                                disabled
-                                                            />
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </DragDropContext>
-                                            <button
-                                                onClick={handleSubmit}
-                                                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 mt-6"
-                                            >
-                                                Save
-                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </DragDropContext>
+                                            </div>
+                                            {/* <div className="bg-white p-4 border-t mt-4 shadow-lg"> */}
+                                                <button
+                                                    onClick={handleSubmit}
+                                                    className="w-full bg-blue-600 text-white py-3 mt-4 shadow-lg rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                                                >
+                                                    Save Plan
+                                                </button>
+                                            {/* </div> */}
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Right Side: Map */}
-                                <div>
-                                    <div className="h-[80vh] rounded-lg shadow-md">
+                                <div className="relative">
+                                    <div className="sticky top-4 h-[100vh] rounded-lg shadow-md">
                                         {isMapLoaded ? (
                                             <GoogleMap
                                                 mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -503,12 +507,6 @@ export default function CreatePlanPage() {
                                                             <Marker
                                                                 key={place.id}
                                                                 position={{ lat: place.lat, lng: place.lng }}
-                                                                label={{
-                                                                    text: (placeIndex + 1).toString(),
-                                                                    color: "white",
-                                                                    fontSize: "14px",
-                                                                    fontWeight: "bold",
-                                                                }}
                                                                 icon={{
                                                                     path: window.google.maps.SymbolPath.CIRCLE,
                                                                     fillColor: dayColors[dayIndex % dayColors.length],
@@ -549,7 +547,11 @@ export default function CreatePlanPage() {
                     )}
                 </LoadScript>
             ) : (
-                <div>Loading...</div>
+                <div className="flex h-screen items-center justify-center">
+                    <div className="text-2xl text-blue-600 font-semibold">
+                        Loading...
+                        </div>
+                </div>
             )}
         </div>
     );

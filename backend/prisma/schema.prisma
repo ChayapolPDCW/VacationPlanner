@@ -19,3 +19,20 @@ model User {
   createdAt DateTime @default(now())
   ProfilePicture String? 
 }
+
+model travel_plans {
+  id Int @id @default(autoincrement())
+  user_id Int
+  title String
+  start_date DateTime
+  end_date DateTime
+  itinerary Json?
+  visibility Visibility @default(private)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+enum Visibility {
+  public
+  private
+}

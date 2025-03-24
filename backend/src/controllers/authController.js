@@ -151,6 +151,7 @@ export const login = async (req, res) => {
         const token = jwt.sign(payload, process.env.JWT_SECRET || "SecretKey", { expiresIn: '1d' });
 
         // #5 Send response
+        console.log(checkUser.username)
         res.status(200).json({
             status: "success",
             message: "Login successful",
@@ -159,8 +160,10 @@ export const login = async (req, res) => {
                 username: checkUser.username,
                 email: checkUser.email,
                 profilePicture: checkUser.profilePicture, // Include profilePicture
-                token: token
+                token: token,
+                foo: "bar"
             }
+            
         });
 
     } catch (error) {

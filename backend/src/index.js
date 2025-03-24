@@ -5,28 +5,41 @@ import errorHandling from "./middlewares/errorHandler.js";
 import bodyParser from "body-parser";
 import authRouter from "./routes/authRouter.js";
 import userRouter from "./routes/userRouter.js";
-
+import travelPlanRouter from "./routes/travelPlanRouter.js";
 // >>>>> Avatars
 import { Router } from "express";
-import lodash from 'lodash';
-import path from 'path';
 import multer from 'multer';
-import AvatarStorage from './helpers/AvatarStorage.js';
+import path from 'path';
 
 const router = Router();
-// <<<<< Avatars
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, '../uploads/avatars');
+  },
+  filename: (req, file, cb) => {
+    cb(null, file.fieldname + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
+
+// <<<<< Avatars
 dotenv.config();
 
 const app = express(); 
 const port = process.env.PORT || 5000;
 
-app.get("/home", (req, res) => {
-  res.send(`<form action="/upload" method="POST" enctype="multipart/form-data">
-    <legend>Upload Avatar</legend>
-    <input type="file" name="${process.env.AVATAR_FIELD}">
-    <button type="submit" class="btn btn-primary">Upload</button>
+app.get("/upload", (req, res) => {
+  res.send(`<form action="/upload" method="post" enctype="multipart/form-data">
+  <input type="file" name="avatar" />
+  <input type="submit" value="UPLOAD" class="btn btn-default">
 </form>`);
+});
+
+app.post('/upload', upload.single('avatar'), (req, res, next) => {
+    let file = req.file;
+    res.send(`File uploaded: ${file.originalname}`);
 });
 
 // Middleware
@@ -39,55 +52,16 @@ app.use(errorHandling);
 
 app.use(authRouter);
 app.use(userRouter);
+app.use(travelPlanRouter);
+// Upload endpoint
 
 
-
-// >>>>> Avatars
-var storage = AvatarStorage();
-
-var fileFilter = function (req, file, cb) {
-    // Supported image file mimetypes
-    var allowedMimes = ['image/jpeg', 'image/png'];
-
-    if (lodash.includes(allowedMimes, file.mimetype)) {
-        // Allow supported image files
-        cb(null, true);
-    } else {
-        // Throw error for invalid files
-        cb(new Error('Invalid file type.'));
-    }
-};
-
-const upload = multer({
-  dest: process.env.AVATAR_STORAGE,
-  storage: storage,
-  fileFilter: fileFilter,
-});
-
-app.post('/upload', upload.single(process.env.AVATAR_FIELD), function (req, res, next) {
-  var files;
-  var file = req.file.filename;
-
-  files = [file];
-
-  files = lodash.map(files, function (file) {
-      var port = req.app.get('port');
-      var base = req.protocol + '://' + req.hostname + (port ? ':' + port : '');
-      var url = path.join(req.file.baseUrl, file).replace(/[\\\/]+/g, '/').replace(/^[\/]+/g, '');
-
-      console.log("base: " + base);
-
-      return (req.file.storage == 'local' ? base : '') + '/' + url;
-  });
-
-  res.json({
-      images: files
-  });
-});
-// <<<<< Avatars
 
 // Error handling middleware 
 app.use(errorHandling);
+
+console.log(process.env.DB_HOST);
+console.log(process.env.DB_PORT);
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
