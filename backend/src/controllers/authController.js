@@ -148,7 +148,7 @@ export const login = async (req, res) => {
             username: checkUser.username
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET || "SecretKey", { expiresIn: '1d' });
+        const token = jwt.sign(payload, process.env.JWT_SECRET || "SecretKey", { expiresIn: '6h' });   
 
         // #5 Send response
         console.log(checkUser.username)
@@ -160,8 +160,7 @@ export const login = async (req, res) => {
                 username: checkUser.username,
                 email: checkUser.email,
                 profilePicture: checkUser.profilePicture, // Include profilePicture
-                token: token,
-                foo: "bar"
+                token: token
             }
             
         });
@@ -174,4 +173,33 @@ export const login = async (req, res) => {
             error: process.env.NODE_ENV === "development" ? error.message : undefined // Include error message in development
         });
     }
-};
+}
+
+export const check = async (req, res) => {
+    let token = req.headers["x-auth-token"];
+    if(!token){
+        return res.status(401).json({
+            status: "error",
+            message: "Unauthorized no tokens provided"
+        });
+    }
+    
+    jwt.verify(token, process.env.JWT_SECRET || "SecretKey", (error, decode)=>{
+        if(error){
+            return res.status(401).json({
+                status: "error",
+                message: "Unauthorized"
+            });
+        }else{
+            return res.status(200).json({
+                status: "success",
+                message: "Authorized"
+            });
+        }
+    });
+}
+
+;
+
+
+

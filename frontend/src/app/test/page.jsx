@@ -1,10 +1,10 @@
-'use client'
-
-import { useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import Navbar from "@/components/Navbar";
 
 
-<form action="/profile" method="post" enctype="multipart/form-data">
-  <input type="file" name="avatar" />
-</form>
+export default function HomePage() {
+  return (
+    <div>
+
+    </div>
+  );
+}

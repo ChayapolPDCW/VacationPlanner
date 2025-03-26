@@ -13,20 +13,18 @@ model User {
   username  String   @unique
   email     String   @unique
   password  String
-  total_plan_created Int? @default(0)
-  total_like_received Int? @default(0)
-  current_rank String @default("Beginner")
+  avatarUrl String @default("public/images/avatar.png")
+  experinceLevel Int @default(0)
+  updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
-  ProfilePicture String? 
 }
 
-model travel_plans {
+model TravelPlan {
   id Int @id @default(autoincrement())
-  user_id Int
+  userId Int
   title String
-  start_date DateTime
-  end_date DateTime
-  itinerary Json?
+  startDate DateTime
+  endDate DateTime
   visibility Visibility @default(private)
   updatedAt DateTime @updatedAt
   createdAt DateTime @default(now())
@@ -35,4 +33,54 @@ model travel_plans {
 enum Visibility {
   public
   private
+}
+
+model TravelPlanDestination {
+  id Int @id @default(autoincrement())
+  travelPlanId Int
+  title String
+  latitude Float
+  longitude Float
+  photoUrl String?
+  startDate DateTime
+  dailyVisitOrder Int
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model TravelPlanDestinationAttachment {
+  travelPlanDestinationId Int
+  url String
+  order Int
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@id([travelPlanDestinationId])
+}
+
+model TravelPlanIdBookmark {
+  travelPlanId Int
+  userId Int
+
+
+  @@id([travelPlanId, userId])
+}
+
+model TravelPlanLike {
+  travelPlanId Int
+  userId Int
+
+  @@id([travelPlanId, userId])
+}
+
+model TravelPlanJournal {
+  id Int @id @default(autoincrement())
+  travelPlanId Int
+  title String
+  notes String
+  mood String
+  rating Int
+  visibility Visibility @default(private)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
 }

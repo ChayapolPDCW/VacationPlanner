@@ -1,0 +1,150 @@
+import { PrismaClient } from '@prisma/client';
+import crypto from "crypto";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  try {
+    
+    const password = '123456789';
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
+    const hashedPassword = `${salt}:${hash}`;
+    
+    const user1 = await prisma.user.upsert({
+      where: { email: 'user1@example.com' },
+      update: {},
+      create: {
+        username: 'user1',
+        email: 'user1@example.com',
+        password: hashedPassword,
+        experinceLevel: 1,
+      },
+    });
+
+    const user2 = await prisma.user.upsert({
+      where: { email: 'user2@example.com' },
+      update: {},
+      create: {
+        username: 'user2',
+        email: 'user2@example.com',
+        password: hashedPassword,
+        experinceLevel: 2,
+      },
+    });
+
+    console.log('Users created:', user1, user2);
+
+    // สร้างข้อมูล TravelPlan
+    const today = new Date();
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    const travelPlan1 = await prisma.travelPlan.create({
+      data: {
+        userId: user1.id,
+        title: 'Trip to Bangkok',
+        startDate: today,
+        endDate: nextWeek,
+        visibility: 'public',
+      },
+    });
+
+    const travelPlan2 = await prisma.travelPlan.create({
+      data: {
+        userId: user2.id,
+        title: 'Chiang Mai Adventure',
+        startDate: today,
+        endDate: nextWeek,
+        visibility: 'private',
+      },
+    });
+
+    console.log('Travel Plans created:', travelPlan1, travelPlan2);
+
+    // สร้างข้อมูล TravelPlanDestination
+    const destination1 = await prisma.travelPlanDestination.create({
+      data: {
+        travelPlanId: travelPlan1.id,
+        title: 'Grand Palace',
+        latitude: 13.7500,
+        longitude: 100.4914,
+        photoUrl: 'https://example.com/grand-palace.jpg',
+        startDate: today,
+        dailyVisitOrder: 1,
+      },
+    });
+
+    const destination2 = await prisma.travelPlanDestination.create({
+      data: {
+        travelPlanId: travelPlan1.id,
+        title: 'Chatuchak Market',
+        latitude: 13.7999,
+        longitude: 100.5500,
+        photoUrl: 'https://example.com/chatuchak.jpg',
+        startDate: today,
+        dailyVisitOrder: 2,
+      },
+    });
+
+    console.log('Destinations created:', destination1, destination2);
+
+    // สร้างข้อมูล TravelPlanDestinationAttachment
+    const attachment1 = await prisma.travelPlanDestinationAttachment.create({
+      data: {
+        travelPlanDestinationId: destination1.id,
+        url: 'https://example.com/attachment1.jpg',
+        order: 1,
+      },
+    });
+
+    console.log('Attachments created:', attachment1);
+
+    // สร้างข้อมูล TravelPlanIdBookmark
+    const bookmark1 = await prisma.travelPlanIdBookmark.create({
+      data: {
+        travelPlanId: travelPlan1.id,
+        userId: user2.id,
+      },
+    });
+
+    console.log('Bookmarks created:', bookmark1);
+
+    // สร้างข้อมูล TravelPlanLike
+    const like1 = await prisma.travelPlanLike.create({
+      data: {
+        travelPlanId: travelPlan1.id,
+        userId: user2.id,
+      },
+    });
+
+    console.log('Likes created:', like1);
+
+    // สร้างข้อมูล TravelPlanJournal
+    const journal1 = await prisma.travelPlanJournal.create({
+      data: {
+        travelPlanId: travelPlan1.id,
+        title: 'Day 1 in Bangkok',
+        notes: 'Had an amazing time visiting the Grand Palace today!',
+        mood: 'happy',
+        rating: 5,
+        visibility: 'public',
+      },
+    });
+
+    console.log('Journal entries created:', journal1);
+
+    console.log('Seeding completed successfully!');
+  } catch (error) {
+    console.error('Error during seeding:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main()
+  .catch((error) => {
+    console.error('Unhandled error during seeding:', error);
+    process.exit(1);
+  });

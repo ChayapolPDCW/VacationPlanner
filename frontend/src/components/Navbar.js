@@ -4,14 +4,6 @@ export default function Navbar() {
     return (
         <nav className="relative flex justify-center items-center p-4 bg-white shadow-md">
             <div className="absolute left-4 flex items-center">
-                <Image
-                    src="/favicon.ico"
-                    alt="Logo"
-                    width={32}
-                    height={32}
-                    className="cursor-pointer"
-                    href="/"
-                />
                 <a href="/" className="text-blue-600 font-semibold ml-4 text-2xl">
                     Vacation Planner
                 </a>

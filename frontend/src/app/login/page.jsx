@@ -24,7 +24,6 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
 
 
         try {
@@ -33,8 +32,8 @@ export default function Login() {
                 password: formData.password
             });
 
-            if (response.data) {
-                console.log(response.data.data);
+            if (response.data.status === "success") {
+                window.localStorage.setItem('token', response.data.data.token);
                 router.push('/');
             }
    

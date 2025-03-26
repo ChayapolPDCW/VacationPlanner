@@ -11,11 +11,17 @@ export const authMiddleware = (req, res, next) => {
         })
     }
 
-    const verified = jwt.verify(token, "SecretKey", (error, decode)=>{
+
+    // const options = {
+    //     algorithm: "",
+    // }
+
+
+    jwt.verify(token, "SecretKey", (error, decode)=>{
         if(error){ 
             return res.status(401).json({
                 message: "Invalid token"
-            })
+            });
         }else{
             console.log("decode: ", decode);
             req.user = decode;
