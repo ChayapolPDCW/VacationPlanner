@@ -1,6 +1,8 @@
-import prisma from "../models/userModel.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // Register Create User
 export const register = async (req, res) => {
@@ -198,8 +200,3 @@ export const check = async (req, res) => {
         }
     });
 }
-
-;
-
-
-

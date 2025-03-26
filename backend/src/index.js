@@ -3,15 +3,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import errorHandling from "./middlewares/errorHandler.js";
 import bodyParser from "body-parser";
-import authRouter from "./routes/authRouter.js";
-import userRouter from "./routes/userRouter.js";
-import travelPlanRouter from "./routes/travelPlanRouter.js";
+import router from "./routes/router.js";
 // >>>>> Avatars
-import { Router } from "express";
 import multer from 'multer';
 import path from 'path';
-
-const router = Router();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -48,21 +43,13 @@ app.use(cors());
 app.use(bodyParser.json());
 //error handling
 app.use(errorHandling);
+
 // Routes
-
-app.use(authRouter);
-app.use(userRouter);
-app.use(travelPlanRouter);
-// Upload endpoint
-
-
-
-// Error handling middleware 
-app.use(errorHandling);
+app.use(router);
 
 console.log(process.env.DB_HOST);
 console.log(process.env.DB_PORT);
 // Start the server
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  console.log(`Server is running successfully on port ${port}`);
 });

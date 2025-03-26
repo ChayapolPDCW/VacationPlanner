@@ -7,7 +7,7 @@ export const createTravelPlan = async (req, res) => {
         const { title, start_date, end_date, visibility } = req.body;
         const user_id = req.user.id;
 
-        const travelPlan = await prisma.travel_plans.create({
+        const travelPlan = await prisma.travelPlan.create({
             data: {
                 title, user_id, start_date, end_date, visibility
             }
@@ -30,7 +30,7 @@ export const createTravelPlan = async (req, res) => {
 //get all travel plans
 export const getAllTravelPlans = async (req, res) => {
     try{
-        const travelPlans = await prisma.travel_plans.findMany();
+        const travelPlans = await prisma.travelPlan.findMany();
         res.status(200).json({
             status: "success",
             data: travelPlans
