@@ -1,14 +1,18 @@
 import Link from 'next/link';
+import PlanCard from '../../components/PlanCard';
 
-const Home = () => {
-  // Mock data 
+export default function Home() {
+  // Hardcoded data Popular Plans
   const popularPlans = [
-    { id: 1, name: "Trip's name", username: "username", dateRange: "17 Nov - 23 Nov", likes: 198 },
-    { id: 2, name: "Trip's name", username: "username", dateRange: "3 Aug - 8 Aug", likes: 167 },
-    { id: 3, name: "Trip's name", username: "username", dateRange: "3 Aug - 8 Aug", likes: 122 },
+    { id: 1, name: "Summer in Bali", start_date: "2024-11-17T00:00:00.000Z", end_date: "2024-11-23T00:00:00.000Z", total_like: 198, user: { username: "user1" } },
+    { id: 2, name: "Winter in Paris", start_date: "2024-08-03T00:00:00.000Z", end_date: "2024-08-08T00:00:00.000Z", total_like: 167, user: { username: "user2" } },
+    { id: 3, name: "Hiking in Alps", start_date: "2024-08-12T00:00:00.000Z", end_date: "2024-08-23T00:00:00.000Z", total_like: 151, user: { username: "user3" } },
+    { id: 4, name: "Beach Getaway in Maldives", start_date: "2024-09-05T00:00:00.000Z", end_date: "2024-09-10T00:00:00.000Z", total_like: 134, user: { username: "user4" } },
+    { id: 5, name: "City Tour in Tokyo", start_date: "2024-10-20T00:00:00.000Z", end_date: "2024-10-25T00:00:00.000Z", total_like: 122, user: { username: "user5" } },
+    { id: 6, name: "Safari in Kenya", start_date: "2024-12-01T00:00:00.000Z", end_date: "2024-12-07T00:00:00.000Z", total_like: 109, user: { username: "user6" } },
   ];
 
-  
+  // Journals 
   const journals = [
     { id: 1, title: "Journal's title", username: "username", location: "Chiang Mai, Thailand", date: "12 Jan - 23 Jan 2025" },
     { id: 2, title: "Journal's title", username: "username", location: "Paris, France", date: "29 Mar - 3 Apr 2024" },
@@ -17,11 +21,11 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-     
+      {/* Hero Section */}
       <div
         className="relative h-[60vh] bg-cover bg-center"
         style={{
-          backgroundImage:  `url('/images/landscape.jpeg')`,
+          backgroundImage: `url('/images/landscape.jpeg')`,
         }}
       >
         <div className="absolute inset-0 bg-black opacity-30"></div>
@@ -41,21 +45,13 @@ const Home = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-gray-900">Popular Plans</h2>
-          <Link href="/community" className="text-indigo-600 hover:underline">
+          <Link href="/plans" className="text-indigo-600 hover:underline">
             See More in Community
           </Link>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {popularPlans.map(plan => (
-            <div key={plan.id} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="h-40 bg-indigo-400"></div> {/* Placeholder for image */}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
-                <p className="text-gray-600">by [{plan.username}]</p>
-                <p className="text-gray-600">{plan.dateRange}</p>
-                <p className="text-gray-600">{plan.likes} Likes</p>
-              </div>
-            </div>
+            <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
       </div>
@@ -80,6 +76,4 @@ const Home = () => {
       </div>
     </div>
   );
-};
-
-export default Home;
+}
