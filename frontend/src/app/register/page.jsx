@@ -1,152 +1,155 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
-export default function Register() {
-    const router = useRouter();
+export default function RegisterPage() {
     const [formData, setFormData] = useState({
-        email: '',
-        username: '',
-        password: '',
-        confirmPassword: ''
+        username: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
     });
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
+    const router = useRouter();
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
+        const { name, value } = e.target;
+        console.log(`Register Field ${name} updated to: "${value}" (Type: ${typeof value})`);
+        setFormData((prev) => {
+            const newFormData = { ...prev, [name]: value };
+            console.log("Updated formData:", newFormData);
+            return newFormData;
         });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
-        
-        if (formData.password !== formData.confirmPassword) {
-            setError('รหัสผ่านไม่ตรงกัน');
+        setError("");
+    
+        console.log("Register Form Data Before Validation:", formData);
+        console.log(
+            `Comparing Password: "${formData.password}" (Type: ${typeof formData.password}) with Confirm Password: "${formData.confirmPassword}" (Type: ${typeof formData.confirmPassword})`
+        );
+    
+        // Trim the values to avoid whitespace issues
+        const password = formData.password.trim();
+        const confirmPassword = formData.confirmPassword.trim();
+    
+        // Validate passwords
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            console.log(
+                `Password: "${password}", Confirm Password: "${confirmPassword}"`
+            );
             return;
         }
-
+    
+        // Validate required fields
+        if (!formData.username || !formData.email || !formData.password) {
+            setError("All fields are required");
+            return;
+        }
+    
         try {
-            const response = await axios.post('http://localhost:5000/register', {
-                email: formData.email,
-                username: formData.username,
-                password: formData.password,
-                confirmPassword: formData.confirmPassword
-            });
-            
-            if (response.data) {
-                alert('ลงทะเบียนสำเร็จ');
-                router.push('/login');
-            }
+            const response = await axios.post(
+                "http://localhost:5000/api/auth/register",
+                {
+                    username: formData.username,
+                    email: formData.email,
+                    password: formData.password,
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+    
+            console.log("Registration successful:", response.data);
+            router.push("/login");
         } catch (err) {
-            setError(err.response?.data?.message || 'เกิดข้อผิดพลาดในการลงทะเบียน');
+            console.error("Error registering:", err.response?.data);
+            setError(err.response?.data?.message || "Failed to register");
         }
     };
-
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    ลงทะเบียน
-                </h2>
-            </div>
-
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                        {error && (
-                            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                                <span className="block sm:inline">{error}</span>
-                            </div>
-                        )}
-                        
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                อีเมล
-                            </label>
-                            <div className="mt-1">
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                                ชื่อผู้ใช้
-                            </label>
-                            <div className="mt-1">
-                                <input
-                                    id="username"
-                                    name="username"
-                                    type="text"
-                                    autoComplete="username"
-                                    required
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                รหัสผ่าน
-                            </label>
-                            <div className="mt-1">
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    required
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                ยืนยันรหัสผ่าน
-                            </label>
-                            <div className="mt-1">
-                                <input
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    type="password"
-                                    autoComplete="new-password"
-                                    required
-                                    value={formData.confirmPassword}
-                                    onChange={handleChange}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <button
-                                type="submit"
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                                ลงทะเบียน
-                            </button>
-                        </div>
-                    </form>
-                </div>
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+                <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
+                {error && <p className="text-red-600 mb-4">{error}</p>}
+                <form onSubmit={handleSubmit}>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2" htmlFor="username">
+                            Username
+                        </label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2" htmlFor="email">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
+                    <div className="mb-4">
+                        <label className="block text-gray-700 mb-2" htmlFor="password">
+                            Password
+                        </label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
+                    <div className="mb-6">
+                        <label className="block text-gray-700 mb-2" htmlFor="confirmPassword">
+                            Confirm Password
+                        </label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                    >
+                        Register
+                    </button>
+                </form>
+                <p className="mt-4 text-center">
+                    Already have an account?{" "}
+                    <a href="/login" className="text-blue-600 hover:underline">
+                        Login
+                    </a>
+                </p>
             </div>
         </div>
     );
-} 
+}

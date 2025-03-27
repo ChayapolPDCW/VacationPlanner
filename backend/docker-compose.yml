@@ -7,7 +7,7 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
-      - /app/node_modules  # Exclude node_modules from the host
+      - /app/node_modules
 
     environment:
       - NODE_ENV=development
@@ -26,7 +26,7 @@ services:
 
 
   db: 
-    image: postgres:16-alpine  # Lightweight PostgreSQL image
+    image: postgres:16-alpine
     container_name: postgres
     environment:
       POSTGRES_HOST: ${DB_HOST}
@@ -34,9 +34,14 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data  # Persistent storage for PostgreSQL data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myuser -d mydatabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
-      - "5432:5432"  # Map PostgreSQL container port 5432 to host port 5432
+      - "5432:5432"
 
 volumes:
-  postgres_data:  # Define a volume for PostgreSQL persistent data
+  postgres_data:

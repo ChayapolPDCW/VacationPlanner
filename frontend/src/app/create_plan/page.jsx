@@ -248,7 +248,7 @@ export default function CreatePlanPage() {
             };
 
             const response = await axios.post(
-                "http://localhost:5000/api/createPlan",
+                "http://localhost:5000/api/plans",
                 planData,
                 {
                     headers: {

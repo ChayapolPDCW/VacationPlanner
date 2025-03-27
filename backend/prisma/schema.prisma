@@ -9,27 +9,29 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String
-  total_plan_created Int? @default(0)
-  total_like_received Int? @default(0)
-  current_rank String @default("Beginner")
-  createdAt DateTime @default(now())
-  ProfilePicture String? 
+  id                  Int      @id @default(autoincrement())
+  username            String   @unique
+  email               String   @unique
+  password            String
+  total_plan_created  Int?     @default(0)
+  total_like_received Int?     @default(0)
+  current_rank        String   @default("Beginner")
+  createdAt           DateTime @default(now())
+  ProfilePicture      String?
+  travel_plans        TravelPlan[]
 }
 
-model travel_plans {
-  id Int @id @default(autoincrement())
-  user_id Int
-  title String
-  start_date DateTime
-  end_date DateTime
-  itinerary Json?
-  visibility Visibility @default(private)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+model TravelPlan {
+  id          Int         @id @default(autoincrement())
+  user_id     Int
+  user        User        @relation(fields: [user_id], references: [id]) 
+  destination String      
+  start_date  DateTime
+  end_date    DateTime
+  itinerary   Json?
+  visibility  String  @default("private")
+  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime    @default(now())
 }
 
 enum Visibility {

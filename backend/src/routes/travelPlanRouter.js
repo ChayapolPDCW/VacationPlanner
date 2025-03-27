@@ -5,7 +5,7 @@ import { authMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 router.get("/getPlan", getAllTravelPlans);
-router.post("/createPlan", createTravelPlan);
+router.post("/", authMiddleware, createTravelPlan);
 
 
 export default router;

@@ -1,11 +1,11 @@
-import prisma from "../models/userModel.js";
+import prisma from "../prisma/client.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 // Register Create User
 export const register = async (req, res) => {
     try {
-        const { username, email, password, confirmPassword } = req.body;
+        const { username, email, password } = req.body;
 
         // #1 Validate input
         if (!username) {
@@ -26,13 +26,6 @@ export const register = async (req, res) => {
                 message: "Invalid password"
             });
         }
-        if (password !== confirmPassword) {
-            return res.status(400).json({
-                status: "error",
-                message: "Passwords do not match"
-            });
-        }
-
         // #2 Check existing user
         const existingUser = await prisma.user.findFirst({
             where: {
@@ -106,27 +99,27 @@ export const login = async (req, res) => {
         if (!email) {
             return res.status(400).json({
                 status: "error",
-                message: "Please enter your email"
+                message: "Please enter your username",
             });
         }
         if (!password) {
             return res.status(400).json({
                 status: "error",
-                message: "Please enter your password"
+                message: "Please enter your password",
             });
         }
 
-        // #2 Check email in database
+        // #2 Check username in database
         const checkUser = await prisma.user.findUnique({
             where: {
-                email: email
-            }
+                email: email,
+            },
         });
 
         if (!checkUser) {
             return res.status(400).json({
                 status: "error",
-                message: "User not found"
+                message: "User not found",
             });
         }
 
@@ -137,7 +130,7 @@ export const login = async (req, res) => {
         if (storedHash !== hash) {
             return res.status(401).json({
                 status: "error",
-                message: "Invalid password"
+                message: "Invalid password",
             });
         }
 
@@ -145,13 +138,16 @@ export const login = async (req, res) => {
         const payload = {
             id: checkUser.id,
             email: checkUser.email,
-            username: checkUser.username
+            username: checkUser.username,
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET || "SecretKey", { expiresIn: '1d' });
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET environment variable is not set");
+        }
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
         // #5 Send response
-        console.log(checkUser.username)
+        console.log(checkUser.username);
         res.status(200).json({
             status: "success",
             message: "Login successful",
@@ -159,19 +155,17 @@ export const login = async (req, res) => {
                 id: checkUser.id,
                 username: checkUser.username,
                 email: checkUser.email,
-                profilePicture: checkUser.profilePicture, // Include profilePicture
+                profilePicture: checkUser.profilePicture,
                 token: token,
-                foo: "bar"
-            }
-            
+                foo: "bar",
+            },
         });
-
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({
             status: "error",
             message: "An error occurred during login",
-            error: process.env.NODE_ENV === "development" ? error.message : undefined // Include error message in development
+            error: process.env.NODE_ENV === "development" ? error.message : undefined,
         });
     }
 };
