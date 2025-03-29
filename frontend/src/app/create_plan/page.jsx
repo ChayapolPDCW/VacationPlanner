@@ -247,18 +247,18 @@ export default function CreatePlanPage() {
                 })),
             };
 
-            const response = await axios.post(
-                "http://localhost:5000/api/createPlan",
-                planData,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
-            console.log("Plan created:", response.data);
-            router.push("/plans");
+            const response = await axios.post("http://localhost:5000/createplan", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                ...planData,
+            });
+
+            if (response.data.status === "success") {
+                console.log("Plan created:", response.data.data);
+                router.push("/plans");
+            }
         } catch (err) {
             console.error("Error creating plan:", err);
             setError(err.response?.data?.message || "Failed to create plan");

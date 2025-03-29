@@ -23,7 +23,7 @@ const upload = multer({ storage: storage });
 dotenv.config();
 
 const app = express(); 
-const port = process.env.PORT || 5000;
+const port = process.env.BACKEND_PORT || 5000;
 
 app.get("/upload", (req, res) => {
   res.send(`<form action="/upload" method="post" enctype="multipart/form-data">
@@ -47,8 +47,6 @@ app.use(errorHandling);
 // Routes
 app.use(router);
 
-console.log(process.env.DB_HOST);
-console.log(process.env.DB_PORT);
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running successfully on port ${port}`);

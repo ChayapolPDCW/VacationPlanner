@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "../services/dbService.js";
 
 // Register Create User
 export const register = async (req, res) => {
@@ -146,6 +144,7 @@ export const login = async (req, res) => {
         // #4 Create payload and token
         const payload = {
             id: checkUser.id,
+            avatarUrl: checkUser.avatarUrl,
             email: checkUser.email,
             username: checkUser.username
         };
@@ -161,7 +160,7 @@ export const login = async (req, res) => {
                 id: checkUser.id,
                 username: checkUser.username,
                 email: checkUser.email,
-                profilePicture: checkUser.profilePicture, // Include profilePicture
+                avatarUrl: checkUser.avatarUrl, // Include profilePicture
                 token: token
             }
             

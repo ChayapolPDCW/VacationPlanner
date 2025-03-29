@@ -1,0 +1,80 @@
+services:
+  frontend:
+    image: ${COMPOSE_PROJECT_NAME}/frontend:dev
+    build:
+      context: ./frontend
+      dockerfile: dev.Dockerfile
+      args:
+        - NODE_VERSION=22.14.0
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "${FRONTEND_PORT:?error}:${FRONTEND_PORT:?error}"
+    networks:
+      - public
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    depends_on:
+      - backend
+    profiles:
+      - development
+    command: npm run dev -- --port ${FRONTEND_PORT}
+
+  backend:
+    image: ${COMPOSE_PROJECT_NAME}/backend:dev
+    build:
+      context: ./backend
+      target: dev
+      args:
+        - NODE_VERSION=22.14.0
+    env_file:
+      - ./backend/.env
+    ports:
+      - "${BACKEND_PORT:?error}:${BACKEND_PORT:?error}"
+      - "9229:9229"
+      - "9230:9230"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/uploads:/app/uploads
+      - ./backend/prisma:/app/prisma
+      - ./backend/package.json:/app/package.json
+      - ./backend/package-lock.json:/app/package-lock.json
+    networks:
+      - public
+      - private
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - development
+    command: npm run dev
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      - ./backend/.env
+    ports:
+      - "${DATABASE_PORT:?error}:${DATABASE_PORT:?error}"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - private
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
+    profiles:
+      - development
+    command: postgres -c listen_addresses='*'
+
+networks:
+  public:
+    # external: true
+  private:
+    # internal: true
+
+volumes:
+  db-data:

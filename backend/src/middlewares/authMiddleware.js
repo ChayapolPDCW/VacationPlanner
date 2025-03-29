@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
 
 export const authMiddleware = (req, res, next) => {
-    try{ 
-        const token = req.header("x-auth-token");
+    try {
+        // ดึง token จาก header Authorization หรือ x-auth-token
+        const token = req.header("Authorization")?.replace("Bearer ", "") || req.header("x-auth-token");
         console.log("token: ", token);
 
         if(!token){
@@ -10,13 +11,6 @@ export const authMiddleware = (req, res, next) => {
                 message: "No token provided"
         })
     }
-
-
-    // const options = {
-    //     algorithm: "",
-    // }
-
-
     jwt.verify(token, "SecretKey", (error, decode)=>{
         if(error){ 
             return res.status(401).json({
