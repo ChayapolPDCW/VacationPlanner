@@ -1,6 +1,9 @@
+import Link from 'next/link';
+
 export default function PlanCard({ plan }) {
-    return (
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+  return (
+    <Link href={`/plans/${plan.id}`}>
+      <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
         <div className="h-40 bg-indigo-400"></div> {/* Placeholder for image */}
         <div className="p-4">
           <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
@@ -14,8 +17,9 @@ export default function PlanCard({ plan }) {
               month: 'short',
             })}
           </p>
-          <p className="text-gray-600">{plan.total_like_received} Likes</p>
+          <p className="text-gray-600">{plan.total_like} Likes</p>
         </div>
       </div>
-    );
-  }
+    </Link>
+  );
+}

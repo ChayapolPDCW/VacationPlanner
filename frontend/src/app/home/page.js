@@ -49,11 +49,12 @@ export default function Home() {
             See More in Community
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {popularPlans.map(plan => (
-            <PlanCard key={plan.id} plan={plan} />
-          ))}
-        </div>
+        {/* Plan Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {popularPlans.map(plan => (
+              <PlanCard key={plan.id} plan={plan} />
+            ))}
+          </div>
       </div>
 
       {/* Explore Journals */}
