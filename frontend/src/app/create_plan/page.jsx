@@ -25,7 +25,10 @@ export default function CreatePlanPage() {
         startDate: new Date(),
         endDate: new Date(),
         center: { lat: 0, lng: 0 },
+        planName: "",
     });
+
+    const [isEditingDestination, setIsEditingDestination] = useState(true);
     const [itinerary, setItinerary] = useState([]);
     const [error, setError] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
@@ -84,8 +87,21 @@ export default function CreatePlanPage() {
     }, [hasUnsavedChanges]);
 
     useEffect(() => {
+        if (isMapLoaded && window.google && window.google.maps) {
+            const input = document.querySelector('input[name="destination"]');
+            if (input) {
+                autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
+                    types: ["geocode"],
+                });
+                autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
+            }
+        }
+    }, [isMapLoaded]);
+
+    useEffect(() => {
         if (step >= 2) {
-            const days = differenceInDays(formData.endDate, formData.startDate) + 2;
+            // Calculate the number of days (inclusive of start and end dates)
+            const days = differenceInDays(formData.endDate, formData.startDate) + 1; // Fix: +1 instead of +2
             const newItinerary = [];
             for (let i = 0; i < days; i++) {
                 const date = addDays(formData.startDate, i);
@@ -101,7 +117,89 @@ export default function CreatePlanPage() {
         }
     }, [formData.startDate, formData.endDate, step]);
 
+    const handleContinue = () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (!formData.destination || !place || !place.formatted_address) {
+            setError("Please select a valid destination from the suggestions.");
+            return;
+        }
+    
+        // Extract the city name from the place
+        let cityName = "";
+        if (place.address_components) {
+            const cityComponent = place.address_components.find((component) =>
+                component.types.includes("locality")
+            );
+            cityName = cityComponent ? cityComponent.long_name : "";
+        }
+    
+        // Fallback: If city name couldn't be determined, use the first part of the destination
+        if (!cityName) {
+            cityName = formData.destination.split(",")[0].trim(); // e.g., "New York" from "New York, NY, USA"
+        }
+    
+        // Set the planName and center coordinates
+        setFormData({
+            ...formData,
+            planName: `${cityName} Trip`, // e.g., "New York Trip"
+            center: {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+            },
+        });
+    
+        // Switch to read-only mode and proceed to the next step
+        setIsEditingDestination(false);
+        setStep(2);
+    };
 
+    const handleNext = () => {
+        if (step === 1) {
+            // Use Google Maps Geocoding API to get the coordinates of the destination
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ address: formData.destination }, (results, status) => {
+                if (status === "OK" && results[0]) {
+                    const location = results[0].geometry.location;
+                    
+                    // Extract the city name from the destination
+                    const addressComponents = results[0].address_components;
+                    let cityName = "";
+                    for (const component of addressComponents) {
+                        if (component.types.includes("locality")) {
+                            cityName = component.long_name; // e.g., "New York"
+                            break;
+                        }
+                    }
+    
+                    // If cityName couldn't be determined, fall back to the first part of the destination
+                    if (!cityName) {
+                        cityName = formData.destination.split(",")[0].trim(); // e.g., "New York" from "New York, NY, USA"
+                    }
+    
+                    // Set the planName and update formData
+                    setFormData({
+                        ...formData,
+                        center: { lat: location.lat(), lng: location.lng() },
+                        planName: `${cityName} Trip`, // e.g., "New York Trip"
+                    });
+    
+                    // Initialize itinerary based on the number of days
+                    const days = differenceInDays(formData.endDate, formData.startDate) + 2;
+                    const newItinerary = Array.from({ length: days }, (_, index) => ({
+                        date: addDays(formData.startDate, index),
+                        places: [],
+                    }));
+                    setItinerary(newItinerary);
+                    setIsEditingDestination(false); // Switch to text display mode
+                    setStep(step + 1);
+                } else {
+                    setError("Invalid destination. Please enter a valid location.");
+                }
+            });
+        } else {
+            setStep(step + 1);
+        }
+    };
 
     const updateDirections = (updatedItinerary) => {
         const directionsService = new window.google.maps.DirectionsService();
@@ -161,8 +259,11 @@ export default function CreatePlanPage() {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData({
+            ...formData,
+            destination: e.target.value,
+        });
+        setError(""); // Clear any error when the user starts typing
     };
 
     const handleStartDateChange = (e) => {
@@ -185,22 +286,14 @@ export default function CreatePlanPage() {
     };
 
     const handlePlaceSelect = () => {
-        if (autocompleteRef.current) {
-            const place = autocompleteRef.current.getPlace();
-            if (place && place.geometry) {
-                const lat = place.geometry.location.lat();
-                const lng = place.geometry.location.lng();
-                setFormData({
-                    ...formData,
-                    destination: place.formatted_address || place.name,
-                    center: { lat, lng },
-                });
-                if (step === 1) {
-                    setStep(2);
-                }
-            } else {
-                setError("Please select a valid destination from the suggestions");
-            }
+        const place = autocompleteRef.current?.getPlace();
+        if (place && place.formatted_address) {
+            setFormData({
+                ...formData,
+                destination: place.formatted_address, // e.g., "New York, NY, USA"
+            });
+        } else {
+            setError("Please select a valid destination from the suggestions.");
         }
     };
 
@@ -375,52 +468,72 @@ export default function CreatePlanPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Side: Form and Itinerary */}
                                 <div>
-                                    <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
-
-                                    {/* Step 1: Select Destination */}
-                                    <div className="bg-white p-6 rounded-lg shadow-md">
-                                        <div className="mb-4">
-                                            <label className="block text-gray-700 mb-2">
-                                                Where do you want to go? (e.g. "New York, NY, USA")
-                                            </label>
-                                            {isMapLoaded ? (
-                                                <Autocomplete
-                                                    onLoad={(autocomplete) => (autocompleteRef.current = autocomplete)}
-                                                    onPlaceChanged={handlePlaceSelect}
-                                                >
+                                    {formData.planName && step >= 2 ? (
+                                        <h1 className="text-3xl font-bold mb-6 text-black">
+                                            {formData.planName}
+                                        </h1>
+                                    ) : (
+                                        <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
+                                    )}
+                                        {/* Step 1: Select Destination */}
+                                        <div className="bg-white p-6 rounded-lg shadow-md">
+                                            <div className="mb-4">
+                                                <label className="block text-gray-700 mb-2">
+                                                    Where do you want to go? (e.g. "New York, NY, USA")
+                                                </label>
+                                                {isMapLoaded ? (
+                                                    <div className="flex items-center space-x-2">
+                                                        <input
+                                                            type="text"
+                                                            name="destination"
+                                                            value={formData.destination}
+                                                            onChange={handleChange}
+                                                            className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black ${
+                                                                isEditingDestination ? "" : "bg-gray-100 cursor-not-allowed"
+                                                            }`}
+                                                            placeholder="Enter a destination"
+                                                            readOnly={!isEditingDestination} // Make read-only when not editing
+                                                            required
+                                                            {...(isEditingDestination && {
+                                                                ref: (input) => {
+                                                                    if (autocompleteRef.current) {
+                                                                        autocompleteRef.current.set("input", input);
+                                                                    }
+                                                                },
+                                                                onPlaceChanged: handlePlaceSelect,
+                                                            })}
+                                                        />
+                                                        {!isEditingDestination && (
+                                                            <button
+                                                                onClick={() => setIsEditingDestination(true)}
+                                                                className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ) : (
                                                     <input
                                                         type="text"
                                                         name="destination"
                                                         value={formData.destination}
                                                         onChange={handleChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                                                        placeholder="Enter a destination"
-                                                        required
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                        placeholder="Loading..."
+                                                        disabled
                                                     />
-                                                </Autocomplete>
-                                            ) : (
-                                                <input
-                                                    type="text"
-                                                    name="destination"
-                                                    value={formData.destination}
-                                                    onChange={handleChange}
-                                                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                    placeholder="Loading..."
-                                                    disabled
-                                                />
+                                                )}
+                                            </div>
+                                            {step < 2 && error && <p className="text-red-600">{error}</p>}
+                                            {step < 2 && isEditingDestination && (
+                                                <button
+                                                    onClick={handleContinue}
+                                                    className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+                                                >
+                                                    Continue
+                                                </button>
                                             )}
                                         </div>
-                                        {step < 2 && error && <p className="text-red-600">{error}</p>}
-                                        {step < 2 && (
-                                            <button
-                                                onClick={() => setStep(2)}
-                                                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
-                                            >
-                                                Continue
-                                            </button>
-                                        )}
-                                    </div>
-
                                     {/* Step 2: Select Dates */}
                                     {step >= 2 && (
                                         <div className="bg-white p-6 rounded-lg shadow-md mt-6">
@@ -467,7 +580,7 @@ export default function CreatePlanPage() {
                                             <div className="flex-1 bg-white p-6 rounded-lg shadow-md mt-6 overflow-y-auto pt-0">
                                                 <div className="sticky top-0 bg-white z-10 border-b -mx-6 px-6 pt-6">
                                                     <h2 className="text-2xl font-semibold text-black mb-4">
-                                                        Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 2} Days
+                                                        Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 1} Days
                                                     </h2>
                                                     {errorMessage && (
                                                         <p className="text-red-600 mb-4">{errorMessage}</p>
@@ -476,7 +589,7 @@ export default function CreatePlanPage() {
                                                 <DragDropContext onDragEnd={handleDragEnd}>
                                                     {itinerary.map((day, index) => (
                                                         <div key={index} className="mt-6">
-                                                            <h3 className="text-lg font-medium text-blue-600">
+                                                            <h3 className="text-lg font-medium text-indigo-600">
                                                                 {format(day.date, "d MMMM yyyy")}
                                                             </h3>
                                                             <Droppable droppableId={String(index)}>
@@ -486,85 +599,85 @@ export default function CreatePlanPage() {
                                                                         ref={provided.innerRef}
                                                                         className="min-h-[50px]"
                                                                     >
-                                                                    {day.places.map((place, placeIndex) => (
-                                                                        <Draggable
-                                                                            key={place.id}
-                                                                            draggableId={String(place.id)}
-                                                                            index={placeIndex}
-                                                                        >
-                                                                            {(provided) => (
-                                                                                <div
-                                                                                    ref={provided.innerRef}
-                                                                                    {...provided.draggableProps}
-                                                                                    {...provided.dragHandleProps}
-                                                                                    className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
-                                                                                >
-                                                                                    <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
-                                                                                        {placeIndex + 1}
-                                                                                    </div>
-                                                                                    <img
-                                                                                        src={place.image}
-                                                                                        alt={place.name}
-                                                                                        className="w-24 h-24 rounded-lg mr-4"
-                                                                                    />
-                                                                                    <div className="flex-1">
-                                                                                        <h4 className="text-md font-medium">
-                                                                                            {place.name}
-                                                                                        </h4>
-                                                                                        <p className="text-sm text-gray-600">
-                                                                                            {place.address}
-                                                                                        </p>
-                                                                                        <hr className="my-2 border-gray-300" />
-                                                                                        <div className="mt-2">
-                                                                                            <label className="text-sm font-medium text-gray-700">
-                                                                                                Note
-                                                                                            </label>
-                                                                                            {editMode[place.id] ? (
-                                                                                                <div className="flex items-start space-x-2 mt-1">
-                                                                                                    <textarea
-                                                                                                        value={place.customDescription} // Use only customDescription
-                                                                                                        onChange={(e) => handleDescriptionChange(index, place.id, e.target.value)}
-                                                                                                        placeholder="e.g. The mall opens at 10 AM."
-                                                                                                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black text-sm resize-y min-h-[80px]"
-                                                                                                        rows="3"
-                                                                                                    />
-                                                                                                    <button
-                                                                                                        onClick={() => handleSaveDescription(index, place.id)}
-                                                                                                        className="text-blue-600 hover:text-blue-800 font-medium mt-2"
-                                                                                                        title="Save note"
-                                                                                                        aria-label="Save note"
-                                                                                                    >
-                                                                                                        <FaCheck className="text-lg mr-3 ml-1" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            ) : (
-                                                                                                <div className="flex items-center space-x-2 mt-1">
-                                                                                                    <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                                                                                                        {place.description || "Add some note here."}
-                                                                                                    </p>
-                                                                                                    <button
-                                                                                                        onClick={() => handleEditDescription(place.id)}
-                                                                                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-                                                                                                    >
-                                                                                                        <FaPen className="text-md mr-3 ml-1" />
-                                                                                                    </button>
-                                                                                                </div>
-                                                                                            )}
-                                                                                        </div>
-                                                                                        <p className="text-xs text-gray-500 mt-1">
-                                                                                            Travel Time to Next Location: {place.travelTime}
-                                                                                        </p>
-                                                                                    </div>
-                                                                                    <button
-                                                                                        onClick={() => handleDeletePlace(index, place.id)}
-                                                                                        className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                        {day.places.map((place, placeIndex) => (
+                                                                            <Draggable
+                                                                                key={place.id}
+                                                                                draggableId={String(place.id)}
+                                                                                index={placeIndex}
+                                                                            >
+                                                                                {(provided) => (
+                                                                                    <div
+                                                                                        ref={provided.innerRef}
+                                                                                        {...provided.draggableProps}
+                                                                                        {...provided.dragHandleProps}
+                                                                                        className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
                                                                                     >
-                                                                                        <FaRegTrashAlt className="text-xl mr-3 ml-1" />
-                                                                                    </button>
-                                                                                </div>
-                                                                            )}
-                                                                        </Draggable>
-                                                                    ))}
+                                                                                        <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
+                                                                                            {placeIndex + 1}
+                                                                                        </div>
+                                                                                        <img
+                                                                                            src={place.image}
+                                                                                            alt={place.name}
+                                                                                            className="w-24 h-24 rounded-lg mr-4"
+                                                                                        />
+                                                                                        <div className="flex-1">
+                                                                                            <h4 className="text-md font-medium">
+                                                                                                {place.name}
+                                                                                            </h4>
+                                                                                            <p className="text-sm text-gray-600">
+                                                                                                {place.address}
+                                                                                            </p>
+                                                                                            <hr className="my-2 border-gray-300" />
+                                                                                            <div className="mt-2">
+                                                                                                <label className="text-sm font-medium text-gray-700">
+                                                                                                    Note
+                                                                                                </label>
+                                                                                                {editMode[place.id] ? (
+                                                                                                    <div className="flex items-start space-x-2 mt-1">
+                                                                                                        <textarea
+                                                                                                            value={place.customDescription}
+                                                                                                            onChange={(e) => handleDescriptionChange(index, place.id, e.target.value)}
+                                                                                                            placeholder="e.g. The mall opens at 10 AM."
+                                                                                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black text-sm resize-y min-h-[80px]"
+                                                                                                            rows="3"
+                                                                                                        />
+                                                                                                        <button
+                                                                                                            onClick={() => handleSaveDescription(index, place.id)}
+                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium mt-2"
+                                                                                                            title="Save note"
+                                                                                                            aria-label="Save note"
+                                                                                                        >
+                                                                                                            <FaCheck className="text-lg mr-3 ml-1" />
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                ) : (
+                                                                                                    <div className="flex items-center space-x-2 mt-1">
+                                                                                                        <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                                                                                                            {place.description || "Add some note here."}
+                                                                                                        </p>
+                                                                                                        <button
+                                                                                                            onClick={() => handleEditDescription(place.id)}
+                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                                                                                                        >
+                                                                                                            <FaPen className="text-md mr-3 ml-1" />
+                                                                                                        </button>
+                                                                                                    </div>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                                                Travel Time to Next Location: {place.travelTime}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={() => handleDeletePlace(index, place.id)}
+                                                                                            className="ml-4 text-red-600 hover:text-red-800 font-medium"
+                                                                                        >
+                                                                                            <FaRegTrashAlt className="text-xl mr-3 ml-1" />
+                                                                                        </button>
+                                                                                    </div>
+                                                                                )}
+                                                                            </Draggable>
+                                                                        ))}
                                                                         {provided.placeholder}
                                                                     </div>
                                                                 )}
@@ -673,7 +786,7 @@ export default function CreatePlanPage() {
                 </LoadScript>
             ) : (
                 <div className="flex h-screen items-center justify-center">
-                    <div className="text-2xl text-blue-600 font-semibold">
+                    <div className="text-2xl text-indigo-600 font-semibold">
                         Loading...
                     </div>
                 </div>
