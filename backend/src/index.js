@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import errorHandling from "./middlewares/errorHandler.js";
-import bodyParser from "body-parser";
 import authRouter from "./routes/authRouter.js";
 import userRouter from "./routes/userRouter.js";
 import travelPlanRouter from "./routes/travelPlanRouter.js";
@@ -36,6 +35,10 @@ app.use(express.static("uploads")); // Serve static files from the uploads direc
 app.use("/api/auth", authRouter); // Mount authRouter at /api/auth
 app.use("/api/users", userRouter); // Mount userRouter at /api/users
 app.use("/api/plans", travelPlanRouter); // Mount travelPlanRouter at /api/plans
+
+app.get("/", (req, res) => {
+    res.send("Backend server is running!");
+});
 
 // Upload endpoint for avatars
 app.get("/upload", (req, res) => {
