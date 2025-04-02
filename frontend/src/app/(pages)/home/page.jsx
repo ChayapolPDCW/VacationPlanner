@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import PlanCard from '../../components/PlanCard';
+import PlanCard from '../../../components/PlanCard';
 
 export default function Home() {
   // Hardcoded data Popular Plans

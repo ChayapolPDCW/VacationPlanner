@@ -7,7 +7,7 @@ import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
 import { use } from 'react';
 
-const MapComponent = dynamic(() => import('../../../components/MapComponent'), {
+const MapComponent = dynamic(() => import('../../../../components/MapComponent'), {
   ssr: false,
 });
 
