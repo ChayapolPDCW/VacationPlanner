@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { format, differenceInDays, addDays } from "date-fns";
+import { format, differenceInDays, addDays, startOfDay } from "date-fns";
 import {
     GoogleMap,
     LoadScript,
@@ -22,8 +22,8 @@ export default function CreatePlanPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({
         destination: "",
-        startDate: new Date(),
-        endDate: new Date(),
+        startDate: startOfDay(new Date()), // Normalize to start of day
+        endDate: startOfDay(new Date()),   // Normalize to start of day
         center: { lat: 0, lng: 0 },
         planName: "",
     });
@@ -43,24 +43,16 @@ export default function CreatePlanPage() {
     const autocompleteRef = useRef(null);
     const placeAutocompleteRefs = useRef([]);
     const placeInputRefs = useRef([]);
-
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Colors for each day
     const dayColors = [
-        "#FF0000", // Red
-        "#0000FF", // Blue
-        "#008000", // Green
-        "#FFA500", // Orange
-        "#800080", // Purple
-        "#FFFF00", // Yellow
+        "#FF0000", "#0000FF", "#008000", "#FFA500", "#800080", "#FFFF00",
     ];
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // update state when itinerary changes
     useEffect(() => {
         const hasPlaces = itinerary.some(day => day.places.length > 0);
         setHasUnsavedChanges(hasPlaces);
@@ -75,33 +67,21 @@ export default function CreatePlanPage() {
             }
         };
     
-        // Addif there are unsaved changes
         if (hasUnsavedChanges) {
             window.addEventListener("beforeunload", handleBeforeUnload);
         }
     
-        // Clean up when hasUnsavedChanges changes
         return () => {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
     }, [hasUnsavedChanges]);
 
     useEffect(() => {
-        if (isMapLoaded && window.google && window.google.maps) {
-            const input = document.querySelector('input[name="destination"]');
-            if (input) {
-                autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
-                    types: ["geocode"],
-                });
-                autocompleteRef.current.addListener("place_changed", handlePlaceSelect);
-            }
-        }
-    }, [isMapLoaded]);
-
-    useEffect(() => {
         if (step >= 2) {
-            // Calculate the number of days (inclusive of start and end dates)
-            const days = differenceInDays(formData.endDate, formData.startDate) + 1; // Fix: +1 instead of +2
+            const days = differenceInDays(formData.endDate, formData.startDate) + 1;
+            console.log("Start Date:", formData.startDate);
+            console.log("End Date:", formData.endDate);
+            console.log("Days Calculated:", days);
             const newItinerary = [];
             for (let i = 0; i < days; i++) {
                 const date = addDays(formData.startDate, i);
@@ -110,6 +90,7 @@ export default function CreatePlanPage() {
                     places: itinerary[i]?.places || [],
                 });
             }
+            console.log("Generated Itinerary:", newItinerary);
             setItinerary(newItinerary);
             placeAutocompleteRefs.current = newItinerary.map(() => null);
             placeInputRefs.current = newItinerary.map(() => null);
@@ -117,14 +98,13 @@ export default function CreatePlanPage() {
         }
     }, [formData.startDate, formData.endDate, step]);
 
-    const handleContinue = () => {
+    const handleDestinationSubmit = () => {
         const place = autocompleteRef.current?.getPlace();
         if (!formData.destination || !place || !place.formatted_address) {
             setError("Please select a valid destination from the suggestions.");
             return;
         }
     
-        // Extract the city name from the place
         let cityName = "";
         if (place.address_components) {
             const cityComponent = place.address_components.find((component) =>
@@ -133,71 +113,62 @@ export default function CreatePlanPage() {
             cityName = cityComponent ? cityComponent.long_name : "";
         }
     
-        // Fallback: If city name couldn't be determined, use the first part of the destination
         if (!cityName) {
-            cityName = formData.destination.split(",")[0].trim(); // e.g., "New York" from "New York, NY, USA"
+            cityName = formData.destination.split(",")[0].trim();
         }
     
-        // Set the planName and center coordinates
         setFormData({
             ...formData,
-            planName: `${cityName} Trip`, // e.g., "New York Trip"
+            planName: `${cityName} Trip`,
             center: {
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng(),
             },
         });
     
-        // Switch to read-only mode and proceed to the next step
         setIsEditingDestination(false);
-        setStep(2);
+        setError("");
+        if (step < 2) {
+            setStep(2);
+        }
     };
 
-    const handleNext = () => {
-        if (step === 1) {
-            // Use Google Maps Geocoding API to get the coordinates of the destination
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ address: formData.destination }, (results, status) => {
-                if (status === "OK" && results[0]) {
-                    const location = results[0].geometry.location;
-                    
-                    // Extract the city name from the destination
-                    const addressComponents = results[0].address_components;
-                    let cityName = "";
-                    for (const component of addressComponents) {
-                        if (component.types.includes("locality")) {
-                            cityName = component.long_name; // e.g., "New York"
-                            break;
-                        }
-                    }
-    
-                    // If cityName couldn't be determined, fall back to the first part of the destination
-                    if (!cityName) {
-                        cityName = formData.destination.split(",")[0].trim(); // e.g., "New York" from "New York, NY, USA"
-                    }
-    
-                    // Set the planName and update formData
-                    setFormData({
-                        ...formData,
-                        center: { lat: location.lat(), lng: location.lng() },
-                        planName: `${cityName} Trip`, // e.g., "New York Trip"
-                    });
-    
-                    // Initialize itinerary based on the number of days
-                    const days = differenceInDays(formData.endDate, formData.startDate) + 2;
-                    const newItinerary = Array.from({ length: days }, (_, index) => ({
-                        date: addDays(formData.startDate, index),
-                        places: [],
-                    }));
-                    setItinerary(newItinerary);
-                    setIsEditingDestination(false); // Switch to text display mode
-                    setStep(step + 1);
-                } else {
-                    setError("Invalid destination. Please enter a valid location.");
-                }
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            destination: e.target.value,
+        });
+        setError("");
+    };
+
+    const handleStartDateChange = (e) => {
+        const newStartDate = startOfDay(new Date(e.target.value)); // Normalize to start of day
+        if (formData.endDate < newStartDate) {
+            setFormData({ ...formData, startDate: newStartDate, endDate: newStartDate });
+        } else {
+            setFormData({ ...formData, startDate: newStartDate });
+        }
+    };
+
+    const handleEndDateChange = (e) => {
+        const newEndDate = startOfDay(new Date(e.target.value)); // Normalize to start of day
+        if (newEndDate < formData.startDate) {
+            setError("End Date cannot be before Start Date");
+            return;
+        }
+        setError("");
+        setFormData({ ...formData, endDate: newEndDate });
+    };
+
+    const handlePlaceSelect = () => {
+        const place = autocompleteRef.current?.getPlace();
+        if (place && place.formatted_address) {
+            setFormData({
+                ...formData,
+                destination: place.formatted_address,
             });
         } else {
-            setStep(step + 1);
+            setError("Please select a valid destination from the suggestions.");
         }
     };
 
@@ -258,45 +229,6 @@ export default function CreatePlanPage() {
         });
     };
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            destination: e.target.value,
-        });
-        setError(""); // Clear any error when the user starts typing
-    };
-
-    const handleStartDateChange = (e) => {
-        const newStartDate = new Date(e.target.value);
-        if (formData.endDate < newStartDate) {
-            setFormData({ ...formData, startDate: newStartDate, endDate: newStartDate });
-        } else {
-            setFormData({ ...formData, startDate: newStartDate });
-        }
-    };
-
-    const handleEndDateChange = (e) => {
-        const newEndDate = new Date(e.target.value);
-        if (newEndDate < formData.startDate) {
-            setError("End Date cannot be before Start Date");
-            return;
-        }
-        setError("");
-        setFormData({ ...formData, endDate: newEndDate });
-    };
-
-    const handlePlaceSelect = () => {
-        const place = autocompleteRef.current?.getPlace();
-        if (place && place.formatted_address) {
-            setFormData({
-                ...formData,
-                destination: place.formatted_address, // e.g., "New York, NY, USA"
-            });
-        } else {
-            setError("Please select a valid destination from the suggestions.");
-        }
-    };
-
     const handleAddPlace = (dayIndex) => {
         if (placeAutocompleteRefs.current[dayIndex]) {
             const place = placeAutocompleteRefs.current[dayIndex].getPlace();
@@ -320,7 +252,6 @@ export default function CreatePlanPage() {
                 setItinerary(updatedItinerary);
                 updateDirections(updatedItinerary);
     
-                // Set initial edit mode to true for the new place
                 setEditMode(prev => ({ ...prev, [newPlace.id]: true }));
     
                 if (placeInputRefs.current[dayIndex]) {
@@ -366,11 +297,10 @@ export default function CreatePlanPage() {
         const updatedItinerary = [...itinerary];
         const place = updatedItinerary[dayIndex].places.find(p => p.id === placeId);
         if (place) {
-            // Save the description even if customDescription is empty
             place.description = place.customDescription !== undefined ? place.customDescription : place.description;
             setItinerary(updatedItinerary);
             setEditingDescription(prev => ({ ...prev, [placeId]: false }));
-            setEditMode(prev => ({ ...prev, [placeId]: false })); // Exit edit mode after saving
+            setEditMode(prev => ({ ...prev, [placeId]: false }));
         }
     };
     
@@ -378,10 +308,10 @@ export default function CreatePlanPage() {
         const updatedItinerary = [...itinerary];
         const place = updatedItinerary.flatMap(day => day.places).find(p => p.id === placeId);
         if (place) {
-            place.customDescription = place.description; // Reset customDescription to the saved description
+            place.customDescription = place.description;
             setItinerary(updatedItinerary);
         }
-        setEditMode(prev => ({ ...prev, [placeId]: true })); // Enter edit mode
+        setEditMode(prev => ({ ...prev, [placeId]: true }));
     };
     
     const handleSubmit = async (e) => {
@@ -422,15 +352,15 @@ export default function CreatePlanPage() {
             );
             console.log("Plan created:", response.data);
             setHasUnsavedChanges(false);
-            setItinerary([]); // Reset itinerary
+            setItinerary([]);
             setFormData({
                 destination: "",
-                startDate: null,
-                endDate: null,
+                startDate: startOfDay(new Date()),
+                endDate: startOfDay(new Date()),
                 center: { lat: 0, lng: 0 },
-            }); // Reset formData
-            localStorage.removeItem("itinerary"); // Clear saved itinerary
-            localStorage.removeItem("formData"); // Clear saved formData
+            });
+            localStorage.removeItem("itinerary");
+            localStorage.removeItem("formData");
             router.push("/plans");
         } catch (err) {
             console.error("Error creating plan:", err);
@@ -475,65 +405,71 @@ export default function CreatePlanPage() {
                                     ) : (
                                         <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
                                     )}
-                                        {/* Step 1: Select Destination */}
-                                        <div className="bg-white p-6 rounded-lg shadow-md">
-                                            <div className="mb-4">
-                                                <label className="block text-gray-700 mb-2">
-                                                    Where do you want to go? (e.g. "New York, NY, USA")
-                                                </label>
-                                                {isMapLoaded ? (
-                                                    <div className="flex items-center space-x-2">
+                                    {/* Step 1: Select Destination */}
+                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                        <div className="mb-4">
+                                            <label className="block text-gray-700 mb-2">
+                                                Where do you want to go? (e.g. "New York, NY, USA")
+                                            </label>
+                                            {isMapLoaded ? (
+                                                <div className="flex items-center space-x-2">
+                                                    {isEditingDestination ? (
+                                                        <Autocomplete
+                                                            onLoad={(autocomplete) => {
+                                                                autocompleteRef.current = autocomplete;
+                                                            }}
+                                                            onPlaceChanged={handlePlaceSelect}
+                                                        >
+                                                            <input
+                                                                type="text"
+                                                                name="destination"
+                                                                value={formData.destination}
+                                                                onChange={handleChange}
+                                                                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                                                placeholder="Enter a destination"
+                                                                required
+                                                            />
+                                                        </Autocomplete>
+                                                    ) : (
                                                         <input
                                                             type="text"
                                                             name="destination"
                                                             value={formData.destination}
-                                                            onChange={handleChange}
-                                                            className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black ${
-                                                                isEditingDestination ? "" : "bg-gray-100 cursor-not-allowed"
-                                                            }`}
-                                                            placeholder="Enter a destination"
-                                                            readOnly={!isEditingDestination} // Make read-only when not editing
-                                                            required
-                                                            {...(isEditingDestination && {
-                                                                ref: (input) => {
-                                                                    if (autocompleteRef.current) {
-                                                                        autocompleteRef.current.set("input", input);
-                                                                    }
-                                                                },
-                                                                onPlaceChanged: handlePlaceSelect,
-                                                            })}
+                                                            className="w-full p-3 border rounded-lg bg-gray-100 cursor-not-allowed text-black"
+                                                            readOnly
                                                         />
-                                                        {!isEditingDestination && (
-                                                            <button
-                                                                onClick={() => setIsEditingDestination(true)}
-                                                                className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        type="text"
-                                                        name="destination"
-                                                        value={formData.destination}
-                                                        onChange={handleChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                        placeholder="Loading..."
-                                                        disabled
-                                                    />
-                                                )}
-                                            </div>
-                                            {step < 2 && error && <p className="text-red-600">{error}</p>}
-                                            {step < 2 && isEditingDestination && (
-                                                <button
-                                                    onClick={handleContinue}
-                                                    className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
-                                                >
-                                                    Continue
-                                                </button>
+                                                    )}
+                                                    {!isEditingDestination && (
+                                                        <button
+                                                            onClick={() => setIsEditingDestination(true)}
+                                                            className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    name="destination"
+                                                    value={formData.destination}
+                                                    onChange={handleChange}
+                                                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                    placeholder="Loading..."
+                                                    disabled
+                                                />
                                             )}
                                         </div>
+                                        {error && <p className="text-red-600">{error}</p>}
+                                        {isEditingDestination && (
+                                            <button
+                                                onClick={handleDestinationSubmit}
+                                                className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+                                            >
+                                                {step < 2 ? "Save Destination" : "Save Destination"}
+                                            </button>
+                                        )}
+                                    </div>
                                     {/* Step 2: Select Dates */}
                                     {step >= 2 && (
                                         <div className="bg-white p-6 rounded-lg shadow-md mt-6">
