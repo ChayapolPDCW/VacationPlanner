@@ -9,7 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'Vacation Planner',
+  title: 'Roamuru',
   description: 'Plan your perfect vacation',
 };
 
