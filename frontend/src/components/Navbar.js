@@ -4,8 +4,8 @@ export default function Navbar() {
     return (
         <nav className="relative flex justify-center items-center p-4 bg-white shadow-md">
             <div className="absolute left-4 flex items-center">
-                <a href="/home" className="text-indigo-600 font-semibold ml-4 text-2xl">
-                    Vacation Planner
+                <a href="/home" className="text-indigo-600 font-semibold ml-4 text-3xl font-gealova">
+                    Roamaru .
                 </a>
             </div>
             <div className="flex space-x-10">
