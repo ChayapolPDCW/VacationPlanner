@@ -173,6 +173,11 @@ export default function PlanDetail({ params: paramsPromise }) {
             {format(new Date(plan.endDate), 'd MMM yyyy')}
           </p>
           <p className="text-gray-600">{plan.total_like} Likes</p>
+          <Link href={`/journal/${plan.id}`}>
+            <button className="mt-2 text-indigo-600 hover:text-indigo-800">
+              Journal this Trip
+            </button>
+          </Link>
         </div>
 
         {/* Plan Description */}
