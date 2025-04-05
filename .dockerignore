@@ -2,6 +2,28 @@
 .dockerignore
 docker
 
-.git
 .env
+.env*.local
+
+.git
+.gitignore
+.vscode
+
+
+# Node
+node_modules
+npm-debug.log
+
+
+# Next.js
+.next
+
+
+# Prisma
+src/generated
+
+
+# Project
+*.txt
 *.md
+uploads

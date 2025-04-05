@@ -3,13 +3,29 @@
 *Dockerfile*
 .dockerignore
 docker
-docker.old
+
+.env
+.env*.local
 
 .git
-.env
-*.md
+.gitignore
+.vscode
 
+
+# Node
 node_modules
 npm-debug.log
 
+
+# Next.js
 .next
+
+
+# Prisma
+src/generated
+
+
+# Project
+*.txt
+*.md
+uploads
