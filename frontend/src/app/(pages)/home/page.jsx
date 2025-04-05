@@ -31,7 +31,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black opacity-30"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            Plan your trip, share your journey, and keep your memories – all in one place.
           </h1>
           <Link href="/create_plan">
             <button className="bg-white text-xl text-indigo-600 font-bold py-3 px-10 rounded-full hover:bg-indigo-100 transition">
