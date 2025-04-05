@@ -1,88 +1,132 @@
-generator client {
-  provider = "prisma-client-js"
-  // output = "../src/generated/prisma_client"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
-}
+// <https://www.prisma.io/docs/orm/reference/prisma-schema-reference>
+// <https://www.postgresql.org/docs/current/datatype.html>
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  output        = "../src/generated/prisma-client"
+}
+
+// generator joi {
+//   provider = "prisma-joi-generator"
+//   output   = "../src/generated/joi"
+// }
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+// TODO:  @frontend:  Implement avatar image defaults
+// If null, check the default '/public/images/default-avatar.png' in the frontend
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  email     String   @unique
-  password  String?
-  googleId  String?  @unique 
-  avatarUrl String   @default("public/images/avatar.png")
-  experinceLevel Int @default(0)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id              Int      @default(autoincrement())
+  username        String   @unique @db.VarChar(100)
+  email           String   @unique @db.VarChar(100)
+  password        String   @db.VarChar(255) 
+  avatarUrl       String?  @map("avatar_url") @db.VarChar(255)
+  experienceLevel Int      @default(0) @map("rank")
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()
+
+  travelPlans           TravelPlan[]
+  bookmarkedTravelPlans TravelPlanBookmark[]
+  likedTravelPlans      TravelPlanLike[]
+
+  @@id([id])
+  @@map("users")
 }
 
 model TravelPlan {
-  id Int @id @default(autoincrement())
-  userId Int
-  title String
-  startDate DateTime
-  endDate DateTime
-  visibility Visibility @default(private)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id         Int        @default(autoincrement())
+  user       User       @relation(fields: [authorId], references: [id])
+  authorId   Int        @map("author_id")
+  title      String     @db.VarChar(100)
+  startDate  DateTime   @map("start_date") @db.Date
+  endDate    DateTime   @map("end_date") @db.Date
+  visibility Visibility @default(PRIVATE)
+  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamp()
+
+  journal           TravelPlanJournal?
+  destinations      TravelPlanDestination[]
+  bookmarkedByUsers TravelPlanBookmark[]
+  likedByUsers      TravelPlanLike[]
+
+  @@id([id])
+  @@map("travel_plans")
 }
 
-enum Visibility {
-  public
-  private
+// TODO:  @backend: Implement the validation logic on inserting 'rating' to CHECK (rating BETWEEN 0 AND 10)
+// <https://www.prisma.io/docs/orm/more/help-and-troubleshooting/check-constraints>
+model TravelPlanJournal {
+  id           Int        @default(autoincrement())
+  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+  travelPlanId Int        @unique @map("travel_plan_id")
+  title        String     @db.VarChar(255)
+  notes        String     @db.Text
+  mood         String     @db.VarChar(50)
+  rating       Int
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()
+
+  @@id([id])
+  @@map("travel_plan_journals")
 }
 
 model TravelPlanDestination {
-  id Int @id @default(autoincrement())
-  travelPlanId Int
-  title String
-  latitude Float
-  longitude Float
-  photoUrl String?
-  startDate DateTime
-  dailyVisitOrder Int
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id              Int        @default(autoincrement())
+  travelPlan      TravelPlan @relation(fields: [travelPlanId], references: [id])
+  travelPlanId    Int        @map("travel_plan_id")
+  title           String     @db.VarChar(255)
+  latitude        Float      @db.DoublePrecision
+  longitude       Float      @db.DoublePrecision
+  photoUrl        String?    @map("photo_url") @db.Text
+  googlePlaceId   String     @map("google_place_id") @db.VarChar(255)
+  startDate       DateTime   @map("start_date") @db.Date
+  dailyVisitOrder Int        @map("daily_visit_order")
+  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp()
+
+  attachments TravelPlanDestinationAttachment[]
+
+  @@id([id])
+  @@map("travel_plan_destinations")
 }
 
 model TravelPlanDestinationAttachment {
-  travelPlanDestinationId Int
-  url String
-  order Int
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  travelPlanDestination   TravelPlanDestination @relation(fields: [travelPlanDestinationId], references: [id])
+  travelPlanDestinationId Int                   @map("travel_plan_destination_id")
+  url                     String                @db.VarChar(255)
+  order                   Int
+  updatedAt               DateTime              @updatedAt @map("updated_at") @db.Timestamp()
+  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamp()
 
   @@id([travelPlanDestinationId])
+  @@map("travel_plan_destination_attachments")
 }
 
-model TravelPlanIdBookmark {
-  travelPlanId Int
-  userId Int
-
+model TravelPlanBookmark {
+  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+  travelPlanId Int        @map("travel_plan_id")
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int        @map("user_id")
 
   @@id([travelPlanId, userId])
+  @@map("travel_plan_bookmarks")
 }
 
 model TravelPlanLike {
-  travelPlanId Int
-  userId Int
+  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+  travelPlanId Int        @map("travel_plan_id")
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int        @map("user_id")
 
   @@id([travelPlanId, userId])
-}
-
-model TravelPlanJournal {
-  id Int @id @default(autoincrement())
-  travelPlanId Int
-  title String
-  notes String
-  mood String
-  rating Int
-  visibility Visibility @default(private)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  @@map("travel_plan_likes")
 }

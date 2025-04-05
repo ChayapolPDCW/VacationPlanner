@@ -1,56 +1,57 @@
 import prisma from "../services/dbService.js";
 
 // Create destination
-export const createDestination = async (req, res) => {
-    try {
-        const { title, latitude, longitude, photoUrl, startDate } = req.body;
-        const travelPlanId = req.params.id;
+export async function createDestination(
+  travelPlanId,
+  title,
+  latitude,
+  longitude,
+  photoUrl,
+  googlePlaceId,
+  startDate,
+  dailyVisitOrder
+) {
+  if (
+    !travelPlanId ||
+    !title ||
+    !latitude ||
+    !longitude ||
+    !googlePlaceId ||
+    !startDate ||
+    !dailyVisitOrder
+  ) {
+    return null;
+  }
 
-        const destination = await prisma.destination.create({
-            data: {
-                title,
-                latitude,
-                longitude,
-                photoUrl,
-                startDate,
-                dailyVisitOrder,
-                createdAt,
-                travelPlanId: travelPlanId
-            }
-        });
+  const newTravelPlanDestination = await prisma.travelPlanDestination.create({
+    data: {
+      travelPlanId: travelPlanId,
+      title: title,
+      latitude: latitude,
+      longitude: longitude,
+      photoUrl: photoUrl,
+      googlePlaceId: googlePlaceId,
+      startDate: startDate,
+      dailyVisitOrder: dailyVisitOrder,
+    },
+  });
 
-        res.status(200).json({
-            status: "success",
-            data: destination
-        });
-    } catch (error) {
-        console.error("Create destination error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "Failed to create destination"
-        });
-    }
-};
+  return newTravelPlanDestination.id;
+}
 
 // delete destination
 
-export const deleteDestination = async (req, res) => {
-    try {
-        const destinationId = req.params.id;
-        await prisma.destination.delete({
-            where: {
-                id: destinationId
-            }
-        });
-        res.status(200).json({
-            status: "success",
-            message: "Destination deleted successfully"
-        });
-    } catch (error) {
-        console.error("Delete destination error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "Failed to delete destination"
-        });
-    }
-};
+export async function deleteDestination(destinationId) {
+  if (!destinationId) {
+    return null;
+  }
+
+  const deletedTravelPlanDestination =
+    await prisma.travelPlanDestination.delete({
+      where: {
+        id: destinationId,
+      },
+    });
+
+  return deletedTravelPlanDestination.id;
+}

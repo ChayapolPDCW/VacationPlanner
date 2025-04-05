@@ -1,201 +1,239 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import prisma from "../services/dbService.js";
+import sessionMiddleware from "../middlewares/session.js";
 
 // Register Create User
 export const register = async (req, res) => {
-    try {
-        const { username, email, password, confirmPassword } = req.body;
+  try {
+    console.log("REQ.BODY: ", req.body);
 
-        // #1 Validate input
-        if (!username) {
-            return res.status(400).json({
-                status: "error",
-                message: "Invalid username"
-            });
-        }
-        if (!email) {
-            return res.status(400).json({
-                status: "error",
-                message: "Invalid email address"
-            });
-        }
-        if (!password) {
-            return res.status(400).json({
-                status: "error",
-                message: "Invalid password"
-            });
-        }
-        if (password !== confirmPassword) {
-            return res.status(400).json({
-                status: "error",
-                message: "Passwords do not match"
-            });
-        }
+    const { username, email, password, confirmPassword } = req.body;
 
-        // #2 Check existing user
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { username: username },
-                    { email: email }
-                ]
-            }
-        });
-
-        if (existingUser) {
-            if (existingUser.username === username) {
-                return res.status(400).json({
-                    status: "error",
-                    message: "Username already exists"
-                });
-            }
-            if (existingUser.email === email) {
-                return res.status(400).json({
-                    status: "error",
-                    message: "Email already exists"
-                });
-            }
-        }
-
-        // #3 Hash password
-        const salt = crypto.randomBytes(16).toString('hex');
-        const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-        const hashedPassword = `${salt}:${hash}`;
-
-        console.log("hashedPassword: ", hashedPassword);
-
-        // Create user
-        const newUser = await prisma.user.create({
-            data: {
-                username,
-                email,
-                password: hashedPassword
-                // profilePicture is optional and can be omitted since it's not provided in the request
-            }
-        });
-
-        // Send response
-        res.status(201).json({
-            status: "success",
-            message: "User created successfully",
-            data: {
-                id: newUser.id,
-                username: newUser.username,
-                email: newUser.email,
-                profilePicture: newUser.profilePicture // Include profilePicture (will be null)
-            }
-        });
-
-    } catch (error) {
-        console.error("Registration error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "An error occurred during registration",
-            error: process.env.NODE_ENV === "development" ? error.message : undefined // Include error message in development
-        });
+    // #1 Validate input
+    if (!username) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid username",
+      });
     }
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid email address",
+      });
+    }
+    if (!password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid password",
+      });
+    }
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        status: "error",
+        message: "Passwords do not match",
+      });
+    }
+
+    // #2 Check existing user
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ username: username }, { email: email }],
+      },
+    });
+
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return res.status(400).json({
+          status: "error",
+          message: "Username already exists",
+        });
+      }
+      if (existingUser.email === email) {
+        return res.status(400).json({
+          status: "error",
+          message: "Email already exists",
+        });
+      }
+    }
+
+    // #3 Hash password
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto
+      .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+      .toString("hex");
+    const hashedPassword = `${salt}:${hash}`;
+
+    console.log("hashedPassword: ", hashedPassword);
+
+    // Create user
+    const newUser = await prisma.user.create({
+      data: {
+        username,
+        email,
+        password: hashedPassword,
+        // profilePicture is optional and can be omitted since it's not provided in the request
+      },
+    });
+
+    // Send response
+    res.status(201).json({
+      status: "success",
+      message: "User created successfully",
+      data: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        profilePicture: newUser.profilePicture, // Include profilePicture (will be null)
+      },
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred during registration",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined, // Include error message in development
+    });
+  }
 };
 
 // Login User
-export const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+export const login = async (req, res, next) => {
+  console.log("hello, world");
 
-        // #1 Validate input
-        if (!email) {
-            return res.status(400).json({
-                status: "error",
-                message: "Please enter your email"
-            });
-        }
-        if (!password) {
-            return res.status(400).json({
-                status: "error",
-                message: "Please enter your password"
-            });
-        }
+  try {
+    const { email, password } = req.body;
 
-        // #2 Check email in database
-        const checkUser = await prisma.user.findUnique({
-            where: {
-                email: email
-            }
-        });
-
-        if (!checkUser) {
-            return res.status(400).json({
-                status: "error",
-                message: "User not found"
-            });
-        }
-
-        // #3 Check password
-        const [salt, storedHash] = checkUser.password.split(':');
-        const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-
-        if (storedHash !== hash) {
-            return res.status(401).json({
-                status: "error",
-                message: "Invalid password"
-            });
-        }
-
-        // #4 Create payload and token
-        const payload = {
-            id: checkUser.id,
-            avatarUrl: checkUser.avatarUrl,
-            email: checkUser.email,
-            username: checkUser.username
-        };
-
-        const token = jwt.sign(payload, process.env.JWT_SECRET || "SecretKey", { expiresIn: '6h' });   
-
-        // #5 Send response
-        console.log(checkUser.username)
-        res.status(200).json({
-            status: "success",
-            message: "Login successful",
-            data: {
-                id: checkUser.id,
-                username: checkUser.username,
-                email: checkUser.email,
-                avatarUrl: checkUser.avatarUrl, // Include profilePicture
-                token: token
-            }
-            
-        });
-
-    } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).json({
-            status: "error",
-            message: "An error occurred during login",
-            error: process.env.NODE_ENV === "development" ? error.message : undefined // Include error message in development
-        });
-    }
-}
-
-export const check = async (req, res) => {
-    let token = req.headers["x-auth-token"];
-    if(!token){
-        return res.status(401).json({
-            status: "error",
-            message: "Unauthorized no tokens provided"
-        });
-    }
+    console.log("REQ.BODY: ", req.data);
     
-    jwt.verify(token, process.env.JWT_SECRET || "SecretKey", (error, decode)=>{
-        if(error){
-            return res.status(401).json({
-                status: "error",
-                message: "Unauthorized"
-            });
-        }else{
-            return res.status(200).json({
-                status: "success",
-                message: "Authorized"
-            });
-        }
+
+    // #1 Validate input
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        message: "Please enter your email",
+      });
+    }
+    if (!password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Please enter your password",
+      });
+    }
+
+    // #2 Check email in database
+    const checkUser = await prisma.user.findUnique({
+      where: {
+        email: email,
+      },
     });
-}
+
+    if (!checkUser) {
+      return res.status(400).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    // #3 Check password
+    const [salt, storedHash] = checkUser.password.split(":");
+    const hash = crypto
+      .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+      .toString("hex");
+
+    if (storedHash !== hash) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid password",
+      });
+    }
+
+    // #4 Create payload and token ----------------------------------------------------------------------------------------
+    const payload = {
+      id: checkUser.id,
+      avatarUrl: checkUser.avatarUrl,
+      email: checkUser.email,
+      username: checkUser.username,
+    };
+
+    req.session.regenerate(function (err) {
+      if (err) next(err);
+
+      req.session.user = payload;
+      console.log("Session user:", req.session.user);
+
+//_____________________________________________________________________________________________________
+      res.cookie('isAuthenticated', true, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 1 day
+      });
+//____________________________________________________________________________________________________-
+    });
+
+    req.session.save(function (err) {
+      if (err) next(err);
+
+      console.log("Session saved");
+      // res.redirect("/");
+
+      console.log(checkUser.username);
+      res.status(200).json({
+        status: "success",
+        message: "Login successful",
+        data: {
+          id: checkUser.id,
+          username: checkUser.username,
+          email: checkUser.email,
+          avatarUrl: checkUser.avatarUrl, 
+        },
+      });
+    });
+
+    // #5 Send response
+    // console.log(checkUser.username);
+    // res.status(200).json({
+    //   status: "success",
+    //   message: "Login successful",
+    //   data: {
+    //     id: checkUser.id,
+    //     username: checkUser.username,
+    //     email: checkUser.email,
+    //     avatarUrl: checkUser.avatarUrl, // Include profilePicture
+    //   },
+    // });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "An error occurred during login",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined, // Include error message in development
+    });
+  }
+};
+
+export const logout = async (req, res, next) => {
+  try {
+    req.session.user = null;
+    req.session.save(function (err) {
+      if (err) next(err);
+
+      req.session.regenerate(function (err) {
+        if (err) next(err);
+
+        res.status(200).json({
+          status: "success",
+          message: "Logged out",
+        });
+      });
+    });
+  } catch (err) {
+    console.error("Error logging out: ", err.message);
+
+    res.status(500).json({
+      status: "error",
+      message: "Error logging out",
+    });
+  }
+};

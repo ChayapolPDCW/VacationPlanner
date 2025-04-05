@@ -19,6 +19,8 @@
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
     "concat-stream": "^2.0.0",
+    "connect-redis": "^8.0.2",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
@@ -35,9 +37,13 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.14.0",
+    "prisma-joi-generator": "^0.2.0",
+    "redis": "^4.7.0",
     "streamifier": "^0.1.1"
   },
   "devDependencies": {
+    "@snaplet/copycat": "^6.0.0",
+    "@snaplet/seed": "^0.98.0",
     "nodemon": "^3.1.9",
     "prisma": "^6.5.0"
   },
@@ -45,6 +51,9 @@
     "legacyWatch": true
   },
   "prisma": {
-    "seed": "node prisma/seed.js"
+    "seed": "npx tsx prisma/seed/seed.ts"
+  },
+  "@snaplet/seed": {
+    "config": "prisma\\seed\\seed.config.ts"
   }
 }

@@ -1,41 +1,61 @@
-import { Router } from 'express';
-import { register, login, check } from '../controllers/authController.js';
-import { createTravelPlan, getAllTravelPlans } from '../controllers/travelPlanController.js';
-import { getAllUsers, getUserById, updateUser, deleteUser } from '../controllers/userController.js';
-import { createBookmark, deleteBookmark } from '../controllers/bookmarkController.js';
-import { createDestination, deleteDestination } from '../controllers/destinationController.js';
-import { createJournal, deleteJournal, getAllJournals, getJournalsByID, updateJournal } from '../controllers/journalController.js';
-import { authMiddleware } from '../middlewares/authMiddleware.js';
+/**
+ * The main route handler.
+ *
+ * This module delegates requests to their corresponding handlers matched the path prefix.
+ */
 
+// Dependencies
+import { Router } from "express";
+
+// Route handlers
+import auth from "./auth.js";
+import bookmarks from "./bookmarks.js";
+import journals from "./journals.js";
+import plans from "./plans.js";
+import users from "./users.js";
+import likes from "./likes.js";
+import { isAuthenticated } from "../middlewares/authMiddleware.js";
+
+// The main route handler
 const router = Router();
 
-// Auth routes
-router.post('/api/auth/register', register);
-router.post('/api/auth/login', login);
-
-// Travel plan routes
-router.post('/createplan', createTravelPlan);
-router.get('/getplans', getAllTravelPlans);
-
-// User routes
-router.get('/users', getAllUsers);
-router.get('/users/:id', getUserById);
-router.put('/users/:id',authMiddleware, updateUser);
-router.delete('/users/:id',authMiddleware, deleteUser);
-
-// Destination routes
-router.post('/createdestination', createDestination);
-router.delete('/destination/:id', deleteDestination);
-
-// Journal routes
-router.post('/createjournal', createJournal);
-router.delete('/journal/:id', deleteJournal);
-router.get('/journals', getAllJournals);
-router.get('/journals/:id', getJournalsByID);
-router.put('/journals/:id', updateJournal);
-
-// bookmark routes
-router.post('/createbookmark', createBookmark);
-router.delete('/bookmark/:id', deleteBookmark);
+// Pass the request to their corresponding handlers
+router.use("/auth", auth);
+router.use("/bookmarks", isAuthenticated, bookmarks);
+router.use("/likes", isAuthenticated, likes);
+router.use("/journals", journals);
+router.use("/plans", plans);
+router.use("/users",isAuthenticated, users);
 
 export default router;
+
+// MOVED TO ./auth.js
+// router.post('/api/auth/register', register);
+// router.post('/api/auth/login', login);
+// router.post('/api/auth/check', isAuthenticated, (req, res) => {
+//     res.status(200).json({
+//         status: "success",
+//         message: "Authenticated",
+//     })
+// });
+
+// Travel plan routes
+
+// User routes
+
+// MOVED TO ./users.js
+// router.get('/users', getAllUsers);
+// router.get('/users/:id', getUserById);
+// router.put('/users/:id', updateUser);
+// router.delete('/users/:id', deleteUser);
+
+// Journal routes
+// router.post('/journals/:id/', isAuthenticated,createJournal);
+// router.delete('/journals/:id/',isAuthenticated, deleteJournal);
+// router.get('/journals', getAllJournals);
+// router.get('/journals/:id',isAuthenticated, getJournalsByID);
+// router.put('/journals/:id',isAuthenticated, updateJournal);
+
+// bookmark routes
+// router.post('/bookmarks/:id/:travelPlanId',isAuthenticated, createBookmark);
+// router.delete('/bookmarks/:id/:travelPlanId', deleteBookmark);
