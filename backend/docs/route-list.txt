@@ -1,0 +1,30 @@
+BACKEND API ROUTES:
+
+- Authentication
+POST        /api/auth/register                      Create a user account
+POST        /api/auth/login                         Logging into a user account
+POST        /api/auth/check                         Check if a user holds a valid session (has been logged in)
+
+- User account
+GET         /api/users                              Get all users account
+GET         /api/users/{USER_ID}                    Get user by ID
+PUT         /api/users/{USER_ID}                    Edit user info by ID
+PUT         /api/users/{USER_ID}/password           Change user password
+
+- TravelPlan
+GET         /api/plans                              Get all TravelPlans
+GET         /api/plans/{PLAN_ID}                    Get travelplan this ID
+POST        /api/plans                              Create a new plan
+
+- TravelPlan > Journal
+POST        /api/journals                           Create a new journal
+GET         /api/journals/{PLAN_ID}                 Get journal by this ID
+GET         /api/journals                           Get All everyone journal
+
+- TravelPlan > Bookmarks
+POST        /api/bookmarks/{PLAN_ID}                Create bookmark in travelplan
+DELETE      /api/bookmarks/{PLAN_ID}                Delete this bookmark
+
+- TravelPlan > Likes
+POST        /api/likes/{PLAN_ID}                    Create like for this plan
+DELETE      /api/likes/{PLAN_ID}                    Delete this like by this plan ID
