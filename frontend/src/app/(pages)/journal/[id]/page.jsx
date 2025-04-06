@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import { FaStar } from "react-icons/fa";
 
-// Mock data for plans (copied from your plans page)
 const mockPlans = [
   {
     id: 1,
@@ -137,10 +136,9 @@ export default function JournalPage() {
   const [formData, setFormData] = useState({
     rating: 0,
     overallMemories: "",
-    itineraryMemories: [], // Array to store memories and photos for each location
+    itineraryMemories: [],
     favoriteMoment: "",
     tips: "",
-    shareToCommunity: false,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -200,7 +198,7 @@ export default function JournalPage() {
     setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
   };
 
-  // Handle form submission (log to console instead of API call)
+ 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError("");
@@ -212,7 +210,6 @@ export default function JournalPage() {
       itineraryMemories: formData.itineraryMemories,
       favoriteMoment: formData.favoriteMoment,
       tips: formData.tips,
-      shareToCommunity: formData.shareToCommunity,
     };
 
     console.log("Journal Data:", journalData);
@@ -364,18 +361,7 @@ export default function JournalPage() {
         </div>
 
         {/* Share to Community and Save Button */}
-        <div className="flex items-center justify-between">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={formData.shareToCommunity}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, shareToCommunity: e.target.checked }))
-              }
-              className="form-checkbox h-5 w-5 text-indigo-600"
-            />
-            <span className="text-gray-700">Share to Community</span>
-          </label>
+        <div className="flex items-right justify-between">
           <button
             onClick={handleSubmit}
             className="bg-indigo-500 text-white py-3 px-6 rounded-lg hover:bg-indigo-600 transition-colors duration-200"

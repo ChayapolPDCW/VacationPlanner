@@ -11,9 +11,6 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
-      fontFamily: {
-        gealova: ['gealova', 'sans-serif'],
-      },
     },
   },
   plugins: [],

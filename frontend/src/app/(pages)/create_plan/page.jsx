@@ -14,8 +14,6 @@ import {
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { toast } from 'react-toastify';
 
-import { FaCheck } from 'react-icons/fa';
-import { FaPen } from "react-icons/fa";
 import { FaRegTrashAlt } from "react-icons/fa";
 
 export default function CreatePlanPage() {
@@ -25,7 +23,7 @@ export default function CreatePlanPage() {
         startDate: startOfDay(new Date()), // Normalize to start of day
         endDate: startOfDay(new Date()),   // Normalize to start of day
         center: { lat: 0, lng: 0 },
-        planName: "",
+        note: "", // Add a new field for the plan-wide note
     });
 
     const [isEditingDestination, setIsEditingDestination] = useState(true);
@@ -38,8 +36,6 @@ export default function CreatePlanPage() {
     const [step, setStep] = useState(1);
     const [directions, setDirections] = useState({});
     const [activeDayIndex, setActiveDayIndex] = useState(null);
-    const [editingDescription, setEditingDescription] = useState({});
-    const [editMode, setEditMode] = useState({});
     const autocompleteRef = useRef(null);
     const placeAutocompleteRefs = useRef([]);
     const placeInputRefs = useRef([]);
@@ -104,28 +100,15 @@ export default function CreatePlanPage() {
             setError("Please select a valid destination from the suggestions.");
             return;
         }
-    
-        let cityName = "";
-        if (place.address_components) {
-            const cityComponent = place.address_components.find((component) =>
-                component.types.includes("locality")
-            );
-            cityName = cityComponent ? cityComponent.long_name : "";
-        }
-    
-        if (!cityName) {
-            cityName = formData.destination.split(",")[0].trim();
-        }
-    
+
         setFormData({
             ...formData,
-            planName: `${cityName} Trip`,
             center: {
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng(),
             },
         });
-    
+
         setIsEditingDestination(false);
         setError("");
         if (step < 2) {
@@ -136,7 +119,7 @@ export default function CreatePlanPage() {
     const handleChange = (e) => {
         setFormData({
             ...formData,
-            destination: e.target.value,
+            [e.target.name]: e.target.value, // Handle both destination and note
         });
         setError("");
     };
@@ -237,8 +220,6 @@ export default function CreatePlanPage() {
                     id: Date.now(),
                     name: place.name,
                     address: place.formatted_address || "No address available",
-                    description: "",
-                    customDescription: "",
                     image: place.photos && place.photos.length > 0
                         ? place.photos[0].getUrl({ maxWidth: 100, maxHeight: 100 })
                         : "/images/fallback.jpeg",
@@ -251,8 +232,6 @@ export default function CreatePlanPage() {
                 updatedItinerary[dayIndex].places.push(newPlace);
                 setItinerary(updatedItinerary);
                 updateDirections(updatedItinerary);
-    
-                setEditMode(prev => ({ ...prev, [newPlace.id]: true }));
     
                 if (placeInputRefs.current[dayIndex]) {
                     placeInputRefs.current[dayIndex].value = "";
@@ -283,37 +262,6 @@ export default function CreatePlanPage() {
         updateDirections(updatedItinerary);
     };
 
-    const handleDescriptionChange = (dayIndex, placeId, value) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary[dayIndex].places.find(p => p.id === placeId);
-        if (place) {
-            place.customDescription = value;
-            setItinerary(updatedItinerary);
-            setEditingDescription(prev => ({ ...prev, [placeId]: value !== "" }));
-        }
-    };
-    
-    const handleSaveDescription = (dayIndex, placeId) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary[dayIndex].places.find(p => p.id === placeId);
-        if (place) {
-            place.description = place.customDescription !== undefined ? place.customDescription : place.description;
-            setItinerary(updatedItinerary);
-            setEditingDescription(prev => ({ ...prev, [placeId]: false }));
-            setEditMode(prev => ({ ...prev, [placeId]: false }));
-        }
-    };
-    
-    const handleEditDescription = (placeId) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary.flatMap(day => day.places).find(p => p.id === placeId);
-        if (place) {
-            place.customDescription = place.description;
-            setItinerary(updatedItinerary);
-        }
-        setEditMode(prev => ({ ...prev, [placeId]: true }));
-    };
-    
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -334,6 +282,7 @@ export default function CreatePlanPage() {
                 destination: formData.destination,
                 startDate: formData.startDate,
                 endDate: formData.endDate,
+                note: formData.note, // Include the plan-wide note
                 itinerary: itinerary.map((day) => ({
                     date: day.date,
                     places: day.places,
@@ -358,6 +307,7 @@ export default function CreatePlanPage() {
                 startDate: startOfDay(new Date()),
                 endDate: startOfDay(new Date()),
                 center: { lat: 0, lng: 0 },
+                note: "", // Reset the note
             });
             localStorage.removeItem("itinerary");
             localStorage.removeItem("formData");
@@ -398,13 +348,9 @@ export default function CreatePlanPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Side: Form and Itinerary */}
                                 <div>
-                                    {formData.planName && step >= 2 ? (
-                                        <h1 className="text-3xl font-bold mb-6 text-black">
-                                            {formData.planName}
-                                        </h1>
-                                    ) : (
-                                        <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
-                                    )}
+                                    <h1 className="text-3xl font-bold mb-6 text-black">
+                                        Create Plan
+                                    </h1>
                                     {/* Step 1: Select Destination */}
                                     <div className="bg-white p-6 rounded-lg shadow-md">
                                         <div className="mb-4">
@@ -563,43 +509,6 @@ export default function CreatePlanPage() {
                                                                                             <p className="text-sm text-gray-600">
                                                                                                 {place.address}
                                                                                             </p>
-                                                                                            <hr className="my-2 border-gray-300" />
-                                                                                            <div className="mt-2">
-                                                                                                <label className="text-sm font-medium text-gray-700">
-                                                                                                    Note
-                                                                                                </label>
-                                                                                                {editMode[place.id] ? (
-                                                                                                    <div className="flex items-start space-x-2 mt-1">
-                                                                                                        <textarea
-                                                                                                            value={place.customDescription}
-                                                                                                            onChange={(e) => handleDescriptionChange(index, place.id, e.target.value)}
-                                                                                                            placeholder="e.g. The mall opens at 10 AM."
-                                                                                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black text-sm resize-y min-h-[80px]"
-                                                                                                            rows="3"
-                                                                                                        />
-                                                                                                        <button
-                                                                                                            onClick={() => handleSaveDescription(index, place.id)}
-                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium mt-2"
-                                                                                                            title="Save note"
-                                                                                                            aria-label="Save note"
-                                                                                                        >
-                                                                                                            <FaCheck className="text-lg mr-3 ml-1" />
-                                                                                                        </button>
-                                                                                                    </div>
-                                                                                                ) : (
-                                                                                                    <div className="flex items-center space-x-2 mt-1">
-                                                                                                        <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                                                                                                            {place.description || "Add some note here."}
-                                                                                                        </p>
-                                                                                                        <button
-                                                                                                            onClick={() => handleEditDescription(place.id)}
-                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
-                                                                                                        >
-                                                                                                            <FaPen className="text-md mr-3 ml-1" />
-                                                                                                        </button>
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
                                                                                             <p className="text-xs text-gray-500 mt-1">
                                                                                                 Travel Time to Next Location: {place.travelTime}
                                                                                             </p>
@@ -647,6 +556,21 @@ export default function CreatePlanPage() {
                                                         </div>
                                                     ))}
                                                 </DragDropContext>
+
+                                                {/* New Note Section for the Entire Plan */}
+                                                <div className="mt-6">
+                                                    <h2 className="text-xl font-semibold text-black mb-2">
+                                                        Note
+                                                    </h2>
+                                                    <textarea
+                                                        name="note"
+                                                        value={formData.note}
+                                                        onChange={handleChange}
+                                                        placeholder="Add any notes for your plan here (e.g., 'Bring sunscreen for Bali beaches!')"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                                        rows="4"
+                                                    />
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={handleSubmit}
