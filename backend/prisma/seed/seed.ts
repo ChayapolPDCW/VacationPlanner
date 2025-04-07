@@ -40,21 +40,26 @@ const main = async () => {
 
     const travelPlan = await seed.travelPlan((x) => x(30, {
         title: ({ seed }) => copycat.city(seed) + ", " + copycat.country(seed),
-
-    }));
-
-    const travelPlanJournal = await seed.travelPlanJournal((x) => x(10, {
-        title: ({ seed }) => copycat.sentence(seed, {
-            minClauses: 1,
-            maxClauses: 1
-        }),
         notes: ({ seed }) => copycat.paragraph(seed, {
             minSentences: 3,
             maxSentences: 10
         }),
-        mood: ({ seed }) => copycat.sentence(seed, {
-            minClauses: 1,
-            maxClauses: 1
+        cityTitle: ({ seed }) => copycat.city(seed),
+    }
+    ));
+
+    const travelPlanJournal = await seed.travelPlanJournal((x) => x(10, {
+        notes: ({ seed }) => copycat.paragraph(seed, {
+            minSentences: 3,
+            maxSentences: 10
+        }),
+        futureTip: ({ seed }) => copycat.paragraph(seed, {
+            minSentences: 3,
+            maxSentences: 10
+        }),
+        favNotes: ({ seed }) => copycat.paragraph(seed, {
+            minSentences: 3,
+            maxSentences: 10
         }),
         rating: ({ seed }) => copycat.int(seed, {
             min: 0,

@@ -6,9 +6,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// <https://www.prisma.io/docs/orm/reference/prisma-schema-reference#binarytargets-options>
+// <https://www.prisma.io/docs/orm/reference/environment-variables-reference#cli-binary-targets>
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
   output        = "../src/generated/prisma-client"
 }
 
@@ -28,7 +30,7 @@ model User {
   id              Int      @default(autoincrement())
   username        String   @unique @db.VarChar(100)
   email           String   @unique @db.VarChar(100)
-  password        String   @db.VarChar(255) 
+  password        String   @db.VarChar(255)
   avatarUrl       String?  @map("avatar_url") @db.VarChar(255)
   experienceLevel Int      @default(0) @map("rank")
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()
@@ -47,6 +49,8 @@ model TravelPlan {
   user       User       @relation(fields: [authorId], references: [id])
   authorId   Int        @map("author_id")
   title      String     @db.VarChar(100)
+  cityTitle  String     @db.Text @map("city_title")
+  notes      String     @db.Text
   startDate  DateTime   @map("start_date") @db.Date
   endDate    DateTime   @map("end_date") @db.Date
   visibility Visibility @default(PRIVATE)
@@ -68,9 +72,9 @@ model TravelPlanJournal {
   id           Int        @default(autoincrement())
   travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
   travelPlanId Int        @unique @map("travel_plan_id")
-  title        String     @db.VarChar(255)
   notes        String     @db.Text
-  mood         String     @db.VarChar(50)
+  futureTip    String     @db.Text @map("future_tip")
+  favNotes     String     @db.Text @map("fav_notes")
   rating       Int
   updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()

@@ -1,6 +1,6 @@
+import { PrismaClient } from "../../src/generated/prisma-client/index.js";
 import { SeedPrisma } from "@snaplet/seed/adapter-prisma";
 import { defineConfig } from "@snaplet/seed/config";
-import { PrismaClient } from "@prisma/client";
 
 export default defineConfig({
   adapter: () => {
