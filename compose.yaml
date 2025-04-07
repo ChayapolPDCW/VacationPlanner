@@ -9,14 +9,13 @@ services:
     env_file:
       - ./frontend/.env
     ports:
-      - "${FRONTEND_PORT:?error}:${FRONTEND_PORT:?error}"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT:?error}"
     networks:
       - public
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      # - ./frontend/src:/app/src
-      # - ./frontend/public:/app/public
+      - /app/.next
     depends_on:
       - backend
     profiles:
@@ -30,18 +29,14 @@ services:
       target: dev
       args:
         - NODE_VERSION=22.14.0
-    env_file:
-      - ./backend/.env
     ports:
-      - "${BACKEND_PORT:?error}:${BACKEND_PORT:?error}"
+      - "${BACKEND_PORT}:${BACKEND_PORT:?error}"
       - "9229:9229"
       - "9230:9230"
     volumes:
-      - ./backend/src:/app/src
-      - ./backend/uploads:/app/uploads
-      - ./backend/prisma:/app/prisma
-      - ./backend/package.json:/app/package.json
-      - ./backend/package-lock.json:/app/package-lock.json
+      - ./backend:/app
+      - /app/node_modules
+      - /app/src/generated
     networks:
       - public
       - private
@@ -58,9 +53,9 @@ services:
     image: postgres:17-alpine
     restart: always
     env_file:
-      - ./backend/.env
+      - ./backend/.env.container
     ports:
-      - "${DATABASE_PORT:?error}:${DATABASE_PORT:?error}"
+      - "${DATABASE_PORT}:${DATABASE_PORT:?error}"
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
@@ -78,7 +73,7 @@ services:
     image: redis:7-alpine
     restart: always
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT}:${REDIS_PORT:?error}"
     volumes:
       - redis-data:/data
     networks:

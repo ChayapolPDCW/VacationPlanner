@@ -4,7 +4,10 @@
 
 ARG NODE_VERSION
 
-FROM node:${NODE_VERSION}-alpine
+FROM node:${NODE_VERSION:?error}-alpine
+
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
 
 WORKDIR /app
 
@@ -18,17 +21,16 @@ RUN \
   else echo "Warning: Lockfile not found. It is recommended to commit lockfiles to version control." && yarn install; \
   fi
 
-COPY src ./src
-COPY public ./public
-COPY next.config.js .
-COPY jsconfig.json .
-COPY postcss.config.mjs .
-COPY tailwind.config.mjs .
-# COPY tsconfig.json .
+# COPY src ./src
+# COPY public ./public
+# COPY next.config.js .
+# COPY jsconfig.json .
+# COPY postcss.config.mjs .
+# COPY tailwind.config.mjs .
 
 # Next.js collects completely anonymous telemetry data about general usage. Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line to disable telemetry at run time
-# ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED 1
 
 # Note: Don't expose ports here, Compose will handle that for us
 
