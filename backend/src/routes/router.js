@@ -34,7 +34,7 @@ router.use("/attachments", destinationAttachment)
 
 export default router;
 
-// MOVED TO ./auth.js
+// MOVED TO ./  auth.js
 // router.post('/api/auth/register', register);
 // router.post('/api/auth/login', login);
 // router.post('/api/auth/check', isAuthenticated, (req, res) => {
