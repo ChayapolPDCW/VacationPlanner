@@ -8,7 +8,7 @@ export const register = async (req, res) => {
   try {
     console.log("REQ.BODY: ", req.body);
 
-    const { username, email, password, confirmPassword } = req.body;
+    const { username, email, password, confirmPassword, avatarUrl } = req.body;
 
     // #1 Validate input
     if (!username) {
@@ -73,6 +73,7 @@ export const register = async (req, res) => {
         username,
         email,
         password: hashedPassword,
+        avatarUrl,
         // profilePicture is optional and can be omitted since it's not provided in the request
       },
     });
@@ -85,7 +86,7 @@ export const register = async (req, res) => {
         id: newUser.id,
         username: newUser.username,
         email: newUser.email,
-        profilePicture: newUser.profilePicture, // Include profilePicture (will be null)
+        avatarUrl: newUser.avatarUrl, // Include profilePicture (will be null)
       },
     });
   } catch (error) {
@@ -105,7 +106,7 @@ export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    console.log("REQ.BODY: ", req.data);
+    console.log("REQ.BODY: ", req.body);
     
 
     // #1 Validate input

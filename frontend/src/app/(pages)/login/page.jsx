@@ -44,9 +44,9 @@ export default function LoginPage() {
                 }
             );
 
-            const { token } = response.data.data;
-            localStorage.setItem("token", token);
-            console.log("Login successful, token stored:", token);
+            // const { token } = response.data.data;
+            // localStorage.setItem("token", token);
+            // console.log("Login successful, token stored:", token);
             router.push("/");
         } catch (err) {
             console.error("Error logging in:", err.response?.data);

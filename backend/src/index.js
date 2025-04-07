@@ -6,6 +6,8 @@ import "./config/env.js";
 
 import cors from "cors";
 import express from "express";
+import fs from "node:fs";
+import path from "node:path";
 import router from "./routes/router.js";
 import session from "./middlewares/session.js";
 

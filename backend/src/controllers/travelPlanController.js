@@ -17,9 +17,9 @@ export const createTravelPlan = async (req, res) => {
     }
 
     const authorId = req.session.user.id;
-    const { title, startDate, endDate, visibility, itinerary } = req.body;
+    const { title, cityTitle, notes, startDate, endDate, visibility, itinerary } = req.body;
 
-    if (!title || !startDate || !endDate || !visibility || !itinerary) {
+    if (!title || !cityTitle || !notes || !startDate || !endDate || !visibility || !itinerary) {
       res.status(400).json({
         message: "Error creating TravelPlan: Invalid argument",
       });
@@ -34,6 +34,8 @@ export const createTravelPlan = async (req, res) => {
       data: {
         title: title,
         authorId: authorId,
+        cityTitle: cityTitle,
+        notes: notes,
         startDate: parsedStartDate,
         endDate: parsedEndDate,
         visibility: visibility,
@@ -156,15 +158,28 @@ export const getTravelPlanById = async (req, res) => {
 export const updateTravelPlan = async (req, res) => {
   try {
 
+    const travelPlan = await prisma.travelPlan.findUnique({
+      where: {
+        id: parseInt(req.params.id),
+      },
+    });  
+    const authorId = travelPlan.authorId;
     const travelPlanId = req.params.id;
-    const { newTitle, newStartDate, newEndDate, newVisibility } = req.body;
+    const { newTitle, newCityTitle, newNotes, newStartDate, newEndDate, newVisibility } = req.body;
 
     const travelPlanIdInt = parseInt(travelPlanId);
     const newStartDateType = new Date(newStartDate);  
     const newEndDateType = new Date(newEndDate);
 
-    console.log("newStartDateType: ", newStartDateType);
-    console.log("newEndDateType: ", newEndDateType);
+    // console.log("newStartDateType: ", newStartDateType);
+    // console.log("newEndDateType: ", newEndDateType);
+
+    if(authorId !== req.session.user.id){
+      return res.status(403).json({
+        status: "error",
+        message: "You don't have permission to update this travel plan",
+      })
+    }
 
     if(!travelPlanId){
       return res.status(400).json({
@@ -183,25 +198,52 @@ export const updateTravelPlan = async (req, res) => {
         message: "Travel plan not found",
       })
     }
-
+    
+    const updateData = {};
+    if (newTitle) updateData.title = newTitle;
+    if (newCityTitle) updateData.cityTitle = newCityTitle;
+    if (newNotes) updateData.notes = newNotes;
+    if (newStartDate) updateData.startDate = newStartDateType;
+    if (newEndDate) updateData.endDate = newEndDateType;
+    if (newVisibility) updateData.visibility = newVisibility;
+    
+    if(!newTitle){
+      updateData.title = existingTravelPlan.title;
+    }
+    if(!newCityTitle){
+      updateData.cityTitle = existingTravelPlan.cityTitle;
+    }
+    if(!newNotes){
+      updateData.notes = existingTravelPlan.notes;
+    }
+    if(!newStartDate){
+      updateData.startDate = existingTravelPlan.startDate;
+    }
+    if(!newEndDate){
+      updateData.endDate = existingTravelPlan.endDate;
+    }
+    if(!newVisibility){
+      updateData.visibility = existingTravelPlan.visibility;
+    }
     // ถ้า Edit วัน วันที่มีการนําออกไป ข้อมูลใน TravelPlanDestination จะต้องถูกลบออกไป
-
-    // if (newStartDateType != existingTravelPlan.startDate || newEndDateType != existingTravelPlan.endDate) {
-      
-      // onDelete
-    // }
 
     const travelPlanUpdated = await prisma.travelPlan.update({
 
       where: {
         id: travelPlanIdInt,
       },
-      data: {
-        title : newTitle,
-        startDate: newStartDateType,
-        endDate: newEndDateType,
-        visibility: newVisibility,
-      },
+      data: updateData,
+      select: {
+        id: true,
+        title: true,
+        cityTitle: true,
+        notes: true,
+        startDate: true,
+        endDate: true,
+        visibility: true,
+        createdAt: true,
+      }
+
     });
     
 
@@ -225,6 +267,14 @@ export const updateTravelPlan = async (req, res) => {
 export const deleteTravelPlan = async (req, res) => {
   try {
     const travelPlanId = parseInt(req.params.id);
+    const authorId = travelPlanId.authorId;
+    if (authorId !== req.session.user.id) {
+      return res.status(403).json({
+        status: "error",
+        message: "You don't have permission to delete this travel plan",
+      });
+    }
+
 
 
     await prisma.travelPlan.delete({
@@ -250,7 +300,7 @@ export const deleteTravelPlan = async (req, res) => {
 
 export const createJournal = async (req, res) => {
   try {
-    const { title, notes, mood, rating} = req.body;
+    const {notes, futureTip, favNotes, rating} = req.body;
     const journalId = req.params.id;
 
     const ratingInt = parseInt(rating);
@@ -261,13 +311,6 @@ export const createJournal = async (req, res) => {
       });
     }
 
-    if(!title){
-      return res.status(400).json({
-        status: "error",
-        message: "Title is required",
-      });
-    }
-
     if(!notes){
       return res.status(400).json({ 
         status: "error",
@@ -275,11 +318,17 @@ export const createJournal = async (req, res) => {
       });
     }
 
-  if(!mood){
+  if(!favNotes){
     return res.status(400).json({
       status: "error",
       message: "Mood is required",
     })
+  }
+  if(!futureTip){
+    return res.status(400).json({ 
+      status: "error",
+      message: "Future tip is required",  
+    });
   }
 
   if(!journalId){
@@ -296,11 +345,11 @@ export const createJournal = async (req, res) => {
   }
     const journal = await prisma.travelPlanJournal.create({
       data: {
-        title : title,
-        notes : notes,
-        mood : mood,
-        rating : ratingInt,
         travelPlanId: parseInt(journalId),
+        notes : notes,
+        futureTip : futureTip,
+        favNotes : favNotes,
+        rating : ratingInt,
       },
     });
 
@@ -325,9 +374,10 @@ export const getAllJournals = async (req, res) => {
     const journals = await prisma.travelPlanJournal.findMany({
       select: {
         id: true,
-        title: true,
+        travelPlanId: parseInt(journalId),
         notes: true,
-        mood: true,
+        futureTip: true,
+        favNotes: true,
         rating: true,
         createdAt: true,
       },
@@ -363,9 +413,9 @@ export const getJournalsByID = async (req, res) => {
       },
       select: {
         id: true,
-        title: true,
         notes: true,
-        mood: true,
+        futureTip: true,
+        favNotes: true,
         rating: true,
         createdAt: true,
       },
@@ -387,8 +437,11 @@ export const getJournalsByID = async (req, res) => {
 export const updateJournal = async (req, res) => {
   try {
     const journalId = parseInt(req.params.id);
-    const { title, notes, mood, rating } = req.body;
-    
+    const {newNotes, newFutureTip, newFavNotes, rating } = req.body;
+
+
+
+
     if (!journalId || isNaN(journalId)) {
       return res.status(400).json({
         status: "error",
@@ -403,6 +456,7 @@ export const updateJournal = async (req, res) => {
       },
     });
 
+
     if (!existingJournal) {
       return res.status(404).json({
         status: "error",
@@ -410,11 +464,16 @@ export const updateJournal = async (req, res) => {
       });
     }
 
+
     // สร้างออบเจ็กต์สำหรับอัพเดทข้อมูล โดยใช้ค่าเดิมถ้าไม่มีค่าใหม่
     const updateData = {
-      title: title || existingJournal.title,
-      notes: notes || existingJournal.notes,
-      mood: mood || existingJournal.mood,
+      // title: title || existingJournal.title,
+      // notes: notes || existingJournal.notes,
+      // mood: mood || existingJournal.mood,
+      // rating: rating ? parseInt(rating) : existingJournal.rating
+      notes: newNotes || existingJournal.notes,
+      futureTip: newFutureTip || existingJournal.futureTip,
+      favNotes: newFavNotes || existingJournal.favNotes,
       rating: rating ? parseInt(rating) : existingJournal.rating
     };
 

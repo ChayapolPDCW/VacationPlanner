@@ -10,11 +10,15 @@ import { Router } from "express";
 // Route handlers
 import auth from "./auth.js";
 import bookmarks from "./bookmarks.js";
+import files from "./files.js";
 import journals from "./journals.js";
 import plans from "./plans.js";
 import users from "./users.js";
 import likes from "./likes.js";
+import destinationAttachment from "./destinationAttachment.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
+
+import upload from '../services/fsService.js';
 
 // The main route handler
 const router = Router();
@@ -22,10 +26,13 @@ const router = Router();
 // Pass the request to their corresponding handlers
 router.use("/auth", auth);
 router.use("/bookmarks", isAuthenticated, bookmarks);
+router.use("/files", files);
 router.use("/likes", isAuthenticated, likes);
 router.use("/journals", journals);
 router.use("/plans", plans);
 router.use("/users",isAuthenticated, users);
+router.use("/attachments", destinationAttachment)
+
 
 export default router;
 

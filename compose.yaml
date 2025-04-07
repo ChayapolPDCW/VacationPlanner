@@ -54,6 +54,7 @@ services:
     restart: always
     env_file:
       - ./backend/.env.container
+      - ./backend/.env.container
     ports:
       - "${DATABASE_PORT}:${DATABASE_PORT:?error}"
     volumes:
