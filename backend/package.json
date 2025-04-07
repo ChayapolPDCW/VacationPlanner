@@ -7,39 +7,26 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --watch . src/index.js",
-    "prisma:generate": "npx prisma generate --schema=./prisma/schema.prisma",
-    "db:deploy": "npx prisma migrate deploy && npx prisma generate"
+    "dev": "npx nodemon --watch . src/index.js",
+    "prisma:generate": "npx prisma generate",
+    "db:deploy": "npx prisma migrate deploy && npm run prisma:generate && npx @snaplet/seed sync"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.5.0",
-    "bcrypt": "^5.1.1",
-    "body-parser": "^1.20.3",
-    "concat-stream": "^2.0.0",
     "connect-redis": "^8.0.2",
-    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "dotenv-expand": "^12.0.1",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "jimp": "^1.6.0",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
-    "lodash": "^4.17.21",
-    "mkdirp": "^3.0.1",
     "multer": "^1.4.5-lts.2",
-    "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "passport-google-oidc": "^0.1.0",
-    "passport-jwt": "^4.0.1",
-    "passport-local": "^1.0.0",
-    "pg": "^8.14.0",
     "prisma-joi-generator": "^0.2.0",
-    "redis": "^4.7.0",
-    "streamifier": "^0.1.1"
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "@snaplet/copycat": "^6.0.0",
@@ -51,9 +38,10 @@
     "legacyWatch": true
   },
   "prisma": {
+    "schema": "prisma/schema.prisma",
     "seed": "npx tsx prisma/seed/seed.ts"
   },
   "@snaplet/seed": {
-    "config": "prisma\\seed\\seed.config.ts"
+    "config": "prisma/seed/seed.config.ts"
   }
 }
