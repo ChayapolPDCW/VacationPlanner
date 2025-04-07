@@ -18,8 +18,6 @@ import likes from "./likes.js";
 import destinationAttachment from "./destinationAttachment.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 
-import upload from '../services/fsService.js';
-
 // The main route handler
 const router = Router();
 

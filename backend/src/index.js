@@ -6,8 +6,6 @@ import "./config/env.js";
 
 import cors from "cors";
 import express from "express";
-import fs from "node:fs";
-import path from "node:path";
 import router from "./routes/router.js";
 import session from "./middlewares/session.js";
 
@@ -47,6 +45,7 @@ app.use(session);
 //        |--> ./routes/router.js                 router.use("/users", users);
 //             |--> ./routes/users.js             router.get("/", <handler>);
 app.use("/api", router);
+app.use("/uploads", express.static(process.env.STORAGE_UPLOADS));
 
 // Start the server
 app.listen(port, () => {
