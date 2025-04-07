@@ -2,15 +2,12 @@
  * The backend server's entrypoint
  */
 
-// import bodyParser from "body-parser";
+import "./config/env.js";
+
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
 import router from "./routes/router.js";
 import session from "./middlewares/session.js";
-
-// .env
-dotenv.config();
 
 // Backend port
 const port = process.env.BACKEND_PORT || 5000;
