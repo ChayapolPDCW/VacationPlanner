@@ -33,7 +33,7 @@ export const getAllUsers = async (req, res) => {
 // Get User by ID
 export const getUserById = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params.id;
 
         if (!id || isNaN(parseInt(id))) {
             return res.status(401).json({

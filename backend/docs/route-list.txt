@@ -1,5 +1,10 @@
 BACKEND API ROUTES:
 
+- Resources
+GET         /uploads/{PATH | URL}                   Get an uploaded resource located at PATH or URL on the backend server
+POST        /api/files/avatars                      Save an avatar file (of type 'image/*') on the backend server
+POST        /api/files/images                       Save an image file (of type 'image/*') on the backend server
+
 - Authentication
 POST        /api/auth/register                      Create a user account
 POST        /api/auth/login                         Logging into a user account

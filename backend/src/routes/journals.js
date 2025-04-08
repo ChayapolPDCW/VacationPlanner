@@ -17,7 +17,7 @@ import {
 const router = Router();
 
 // ===== Handlers =====
-router.post("/:id",isAuthenticated, validateCreateJournal, createJournal);
+router.post("/:id",isAuthenticated, createJournal);
 
 router.get("/", getAllJournals);
 

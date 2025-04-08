@@ -1,23 +1,91 @@
+"use client";
+
+/**
+ * plans/1
+ * plans/create
+ * 
+ * profile
+ * profile/edit
+ * 
+ * journals
+ */
+
+import { useEffect, useState } from "react";
 import Link from 'next/link';
 import PlanCard from '../../../components/PlanCard';
+import axios from "axios";
 
 export default function Home() {
-  // Hardcoded data Popular Plans
-  const popularPlans = [
-    { id: 1, name: "Summer in Bali", start_date: "2024-11-17T00:00:00.000Z", end_date: "2024-11-23T00:00:00.000Z", total_like: 198, user: { username: "user1" } },
-    { id: 2, name: "Winter in Paris", start_date: "2024-08-03T00:00:00.000Z", end_date: "2024-08-08T00:00:00.000Z", total_like: 167, user: { username: "user2" } },
-    { id: 3, name: "Hiking in Alps", start_date: "2024-08-12T00:00:00.000Z", end_date: "2024-08-23T00:00:00.000Z", total_like: 151, user: { username: "user3" } },
-    { id: 4, name: "Beach Getaway in Maldives", start_date: "2024-09-05T00:00:00.000Z", end_date: "2024-09-10T00:00:00.000Z", total_like: 134, user: { username: "user4" } },
-    { id: 5, name: "City Tour in Tokyo", start_date: "2024-10-20T00:00:00.000Z", end_date: "2024-10-25T00:00:00.000Z", total_like: 122, user: { username: "user5" } },
-    { id: 6, name: "Safari in Kenya", start_date: "2024-12-01T00:00:00.000Z", end_date: "2024-12-07T00:00:00.000Z", total_like: 109, user: { username: "user6" } },
-  ];
+  const [popularPlans, setPopularPlans] = useState([]);
+  const [visiblePlans, setVisiblePlans] = useState(6); // Number of plans to display
+  const [expanded, setExpanded] = useState(false); // expand & collapse state
+  const [journals, setJournals] = useState([]); // เพิ่ม state สำหรับเก็บข้อมูล journals
 
-  // Journals 
-  const journals = [
-    { id: 1, title: "Journal's title", username: "username", location: "Chiang Mai, Thailand", date: "12 Jan - 23 Jan 2025" },
-    { id: 2, title: "Journal's title", username: "username", location: "Paris, France", date: "29 Mar - 3 Apr 2024" },
-    { id: 3, title: "Journal's title", username: "username", location: "Chiang Mai, Thailand", date: "24 July - 8 Aug 2024" },
-  ];
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/plans");
+        const plansData = response.data.data;
+        
+        console.log("plans: ", plansData);
+        
+        if (plansData && Array.isArray(plansData)) {
+          const formattedPlans = plansData.map((plan, index) => {
+            return {
+              id: index + 1,
+              plan_id: plan.id,
+              title: plan.title,
+              start_date: plan.startDate,
+              end_date: plan.endDate,
+              total_like: plan.totalLike,
+              photo_url: plan.photoUrl,
+              user: {
+                username: plan.user?.username || "Unknown"
+              }
+            };
+          });
+          
+          // เรียงลำดับตามจำนวนไลค์จากมากไปน้อย
+          formattedPlans.sort((a, b) => b.total_like - a.total_like);
+          
+          setPopularPlans(formattedPlans);
+        }
+      } catch (error) {
+        console.error("Error fetching plans:", error);
+      }
+    };
+
+    const fetchJournals = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/journals");
+        const journalsData = response.data.data;
+        
+        console.log("journals: ", journalsData);
+        
+        if (journalsData && Array.isArray(journalsData)) {
+          setJournals(journalsData);
+        }
+      } catch (error) {
+        console.error("Error fetching journals:", error);
+      }
+    };
+
+    fetchPlans();
+    fetchJournals(); // เรียกฟังก์ชันดึงข้อมูล journals
+  }, []); // Empty dependency array to run only once on component mount
+
+  // ฟังก์ชันสำหรับสลับการแสดงแผน
+  const handleToggleShow = () => {
+    if (expanded) {
+      // ถ้าขยายอยู่แล้ว ให้หุบกลับเป็น 6 อัน
+      setVisiblePlans(6);
+      setExpanded(false);
+    } else {
+      // ถ้ายังไม่ขยาย ให้ขยายเป็น 12 อัน
+      setVisiblePlans(12);
+      setExpanded(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -33,7 +101,7 @@ export default function Home() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Plan your trip, share your journey, and keep your memories – all in one place.
           </h1>
-          <Link href="/create_plan">
+          <Link href="/plans/create">
             <button className="bg-white text-xl text-indigo-600 font-bold py-3 px-10 rounded-full hover:bg-indigo-100 transition">
               Plan Your Trip
             </button>
@@ -51,25 +119,49 @@ export default function Home() {
         </div>
         {/* Plan Card */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {popularPlans.map(plan => (
+            {popularPlans.slice(0, visiblePlans).map(plan => (
               <PlanCard key={plan.id} plan={plan} />
             ))}
           </div>
+          
+          {/* Show More/Less Button */}
+          {popularPlans.length > 6 && (
+            <div className="text-center mt-8">
+              <button 
+                onClick={handleToggleShow}
+                className="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition"
+              >
+                {expanded ? "Show Less" : "Show More"}
+              </button>
+            </div>
+          )}
       </div>
 
       {/* Explore Journals */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-3xl font-bold text-gray-900 mb-6">Explore Journals</h2>
+        <div className="mb-6">
+          <h2 className="text-3xl font-bold text-gray-900">Explore Journals</h2>
+        </div>
         <div className="space-y-4">
-          {journals.map(journal => (
+          {journals.slice(0, 3).map(journal => (
             <div key={journal.id} className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">{journal.title}</h3>
               </div>
               <div className="text-right">
-                <p className="text-gray-600">by [{journal.username}]</p>
-                <p className="text-gray-600">{journal.location}</p>
-                <p className="text-gray-600">{journal.date}</p>
+                <p className="text-gray-600">by {journal.username}</p>
+                <p className="text-gray-600">{journal.cityTitle}</p>
+                <p className="text-gray-600">
+                  {new Date(journal.startDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })} - {new Date(journal.endDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </p>
               </div>
             </div>
           ))}

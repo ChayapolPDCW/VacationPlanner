@@ -110,13 +110,61 @@ export const createTravelPlan = async (req, res) => {
 //get all travel plans
 export const getAllTravelPlans = async (req, res) => {
   try {
-    const travelPlans = await prisma.travelPlan.findMany();
+    const travelPlans = await prisma.travelPlan.findMany({
+      where: {
+        visibility: "PUBLIC" // เพิ่มเงื่อนไขให้ดึงเฉพาะแผนที่เป็น PUBLIC
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        likedByUsers: {
+          select: {
+            userId: true,
+          },
+        },
+        destinations: {
+          select: {
+            id: true,
+            photoUrl: true,
+          },
+          take: 1, // เอาแค่ destination แรก
+        },
+      },
+    });
+
+    const formattedTravelPlans = travelPlans.map(plan => {
+      // ดึงรูปภาพจาก destination แรก (ถ้ามี)
+      let photoUrl = null;
+      if (plan.destinations && plan.destinations.length > 0 && plan.destinations[0].photoUrl) {
+        photoUrl = plan.destinations[0].photoUrl;
+      }
+      
+      return {
+        id: plan.id,
+        title: plan.title,
+        cityTitle: plan.cityTitle,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        visibility: plan.visibility,
+        totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
+        photoUrl: photoUrl, // เพิ่ม photoUrl
+        user: {
+          id: plan.user.id,
+          username: plan.user.username,
+        },
+      };
+    });
     
     res.status(200).json({
       status: "success",
-      data: travelPlans,
+      data: formattedTravelPlans,
     });
   } catch (error) {
+    console.error("Error getting all travel plans:", error);
     res.status(500).json({
       status: "error",
       message: "Failed to get all travel plans",
@@ -302,7 +350,38 @@ export const deleteTravelPlan = async (req, res) => {
 export const createJournal = async (req, res) => {
   try {
     const {notes, futureTip, favNotes, rating} = req.body;
-    const journalId = req.params.id;
+    const travelPlanId = req.params.id;
+
+    // ตรวจสอบว่ามี session หรือไม่
+    const userId = req.session.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        status: "error",
+        message: "Not authenticated. Please log in.",
+      });
+    }
+
+    // ตรวจสอบว่า travel plan ที่ระบุมีอยู่จริงหรือไม่
+    const travelPlan = await prisma.travelPlan.findUnique({
+      where: {
+        id: parseInt(travelPlanId),
+      },
+    });
+
+    if (!travelPlan) {
+      return res.status(404).json({
+        status: "error",
+        message: "Travel plan not found",
+      });
+    }
+
+    // ตรวจสอบว่า user ที่ login เป็นเจ้าของ travel plan หรือไม่
+    if (travelPlan.authorId !== userId) {
+      return res.status(403).json({
+        status: "error",
+        message: "You are not authorized to create a journal for this travel plan",
+      });
+    }
 
     const ratingInt = parseInt(rating);
     if(ratingInt < 0 || ratingInt > 10){
@@ -332,7 +411,7 @@ export const createJournal = async (req, res) => {
     });
   }
 
-  if(!journalId){
+  if(!travelPlanId){
     return res.status(400).json({ 
       status: "error",
       message: "Travel plan ID not provided",
@@ -346,7 +425,7 @@ export const createJournal = async (req, res) => {
   }
     const journal = await prisma.travelPlanJournal.create({
       data: {
-        travelPlanId: parseInt(journalId),
+        travelPlanId: parseInt(travelPlanId),
         notes : notes,
         futureTip : futureTip,
         favNotes : favNotes,
@@ -373,19 +452,45 @@ export const createJournal = async (req, res) => {
 export const getAllJournals = async (req, res) => {
   try {
     const journals = await prisma.travelPlanJournal.findMany({
-      select: {
-        id: true,
-        travelPlanId: parseInt(journalId),
-        notes: true,
-        futureTip: true,
-        favNotes: true,
-        rating: true,
-        createdAt: true,
+      include: {
+        travelPlan: {
+          include: {
+            user: {
+              select: {
+                username: true,
+              },
+            },
+          },
+        },
+      },
+      where: {
+        travelPlan: {
+          visibility: "PUBLIC", // เฉพาะ journal ของ travel plan ที่เป็น PUBLIC
+        },
+      },
+      orderBy: {
+        createdAt: 'desc', // เรียงตามวันที่สร้างล่าสุด
       },
     });
+    
+    // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
+    const formattedJournals = journals.map(journal => {
+      return {
+        id: journal.id,
+        title: journal.travelPlan.title,
+        cityTitle: journal.travelPlan.cityTitle,
+        startDate: journal.travelPlan.startDate,
+        endDate: journal.travelPlan.endDate,
+        username: journal.travelPlan.user.username,
+        rating: journal.rating,
+        notes: journal.notes,
+        createdAt: journal.createdAt,
+      };
+    });
+    
     res.status(200).json({
       status: "success",
-      data: journals,
+      data: formattedJournals,
     });
   } catch (error) {
     console.error("Get journals error:", error);
@@ -603,6 +708,46 @@ export const createLikes = async (req, res) => {
   }
 };
 
+export const getlikesById = async (req, res) => {
+  const travelPlanId = parseInt(req.params.id);
+  const userId = parseInt(req.session.user.id);
+
+  if (!travelPlanId || isNaN(travelPlanId)) {
+    return res.status(400).json({
+      status: "error",
+      message: "Invalid travel plan ID",
+    });
+  }
+
+  if (!userId || isNaN(userId)) {
+    return res.status(401).json({
+      status: "error",
+      message: "User not authenticated",
+    });
+  }
+  try{
+    const likes = await prisma.travelPlanLike.findUnique({
+      where: {
+        travelPlanId: travelPlanId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      data: likes,
+    });
+  } catch (error) {
+    console.error("Get likes error:", error);
+    res.status(418).json({
+      status: error,
+      message: "Failed to get likes",
+    });
+  }
+}
+
 export const deleteLikes = async (req, res) => {
   try {
     const travelPlanId = parseInt(req.params.id);
@@ -766,7 +911,7 @@ export const deleteBookmark = async (req, res) => {
       });
     }
 
-    // 4. ตรวจสอบว่าเป็น like ของ user คนนี้จริง
+    // 4. ตรวจสอบ
     if (existingBookmark.userId !== userId) {
       return res.status(403).json({
         status: "error",
