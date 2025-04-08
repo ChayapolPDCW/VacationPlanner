@@ -7,103 +7,104 @@ import prisma from "../services/dbService.js";
 
 //create travel plan
 export const createTravelPlan = async (req, res) => {
-
-  
-  try {
-    if (!req.session.user) {
-      res.status(418).json({
-        message: "Author ID not provided",
-      });
-    }
-
-    const authorId = req.session.user.id;
-    const { title, cityTitle, notes, startDate, endDate, visibility, itinerary } = req.body;
-
-    if (!title || !cityTitle || !notes || !startDate || !endDate || !visibility || !itinerary) {
-      res.status(400).json({
-        message: "Error creating TravelPlan: Invalid argument",
-      });
-    }
-
-    // แปลงวันที่เป็น Date object หากจำเป็น
-    const parsedStartDate = new Date(startDate);
-    const parsedEndDate = new Date(endDate);
-
-    // สร้าง travel plan
-    const newTravelPlan = await prisma.travelPlan.create({
-      data: {
-        title: title,
-        authorId: authorId,
-        cityTitle: cityTitle,
-        notes: notes,
-        startDate: parsedStartDate,
-        endDate: parsedEndDate,
-        visibility: visibility,
-      },
-    });
-
-    // ถ้ามีข้อมูล destinations ให้บันทึกลงใน TravelPlanDestination
-    if (!itinerary.length) {
-      console.log(
-        `WARN: The TravelPlan ${newTravelPlan.id} contains empty itinerary`
-      );
-
-      res.status(201).json({
-        status: "success",
-        message: "TravelPlan created successfully with no itinerary",
-        data: newTravelPlan,
-      });
-    }
-
-    const addedDestinationIdList = [];
-
-    itinerary.map((day) => {
-      console.log("Processing day:", day);
-
-      day.places.map(async (place, placeIndex) => {
-        console.log(`Processing the #${placeIndex} place:`, place);
-
-        const newTravelPlanDestination =
-          await prisma.travelPlanDestination.create({
-            data: {
-              travelPlanId: newTravelPlan.id,
-              title: place.title,
-              latitude: place.latitude,
-              longitude: place.longitude,
-              photoUrl: place.photoUrl,
-              googlePlaceId: place.googlePlaceId,
-              startDate: day.date,
-              dailyVisitOrder: placeIndex,
-            },
-          });
-
-        if (!newTravelPlanDestination) {
-          await prisma.travelPlanDestination.deleteMany({
-            where: {
-              id: { in: addedDestinationIdList },
-            },
-          });
-        } else {
-          console.log("New destination added: ", newTravelPlanDestination.id);
-          addedDestinationIdList.append(newTravelPlanDestination.id);
+    try {
+        // ตรวจสอบว่ามี session และมีข้อมูลผู้ใช้หรือไม่
+        if (!req.session || !req.session.user || !req.session.user.id) {
+            return res.status(401).json({
+                status: "error",
+                message: "Not authenticated. Please log in.",
+            });
         }
-      });
-    });
 
-    res.status(201).json({
-      status: "success",
-      message: "Travel plan created successfully",
-      data: newTravelPlan,
-    });
-  } catch (error) {
-    console.error("Error creating travel plan:", error);
+        const authorId = req.session.user.id;
+        const { title, cityTitle, notes, startDate, endDate, visibility, itinerary } = req.body;
 
-    res.status(500).json({
-      status: "error",
-      message: "Failed to create travel plan",
-      error: error.message,
-    });
-  }
+        if (!title || !cityTitle || !notes || !startDate || !endDate || !visibility || !itinerary) {
+            return res.status(400).json({
+                status: "error",
+                message: "Error creating TravelPlan: Invalid argument",
+            });
+        }
+
+        // แปลงวันที่เป็น Date object หากจำเป็น
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+
+        // สร้าง travel plan
+        const newTravelPlan = await prisma.travelPlan.create({
+            data: {
+                title: title,
+                authorId: authorId,
+                cityTitle: cityTitle,
+                notes: notes,
+                startDate: parsedStartDate,
+                endDate: parsedEndDate,
+                visibility: visibility,
+            },
+        });
+
+        // ถ้ามีข้อมูล destinations ให้บันทึกลงใน TravelPlanDestination
+        if (!itinerary.length) {
+            console.log(
+                `WARN: The TravelPlan ${newTravelPlan.id} contains empty itinerary`
+            );
+
+            return res.status(201).json({
+                status: "success",
+                message: "TravelPlan created successfully with no itinerary",
+                data: newTravelPlan,
+            });
+        }
+
+        const addedDestinationIdList = [];
+
+        itinerary.map((day) => {
+            console.log("Processing day:", day);
+
+            day.places.map(async (place, placeIndex) => {
+                console.log(`Processing the #${placeIndex} place:`, place);
+
+                const newTravelPlanDestination =
+                    await prisma.travelPlanDestination.create({
+                        data: {
+                            travelPlanId: newTravelPlan.id,
+                            title: place.title,
+                            latitude: place.latitude,
+                            longitude: place.longitude,
+                            photoUrl: place.photoUrl,
+                            googlePlaceId: place.googlePlaceId,
+                            startDate: new Date(day.startDate),// EDIT
+                            dailyVisitOrder: placeIndex,
+                        },
+                    });
+
+                if (!newTravelPlanDestination) {
+                    await prisma.travelPlanDestination.deleteMany({
+                        where: {
+                            id: { in: addedDestinationIdList },
+                        },
+                    });
+                } else {
+                    console.log("New destination added: ", newTravelPlanDestination.id);
+                    addedDestinationIdList.push(newTravelPlanDestination.id);
+                }
+            });
+        });
+
+        return res.status(201).json({
+            status: "success",
+            message: "Travel plan created successfully",
+            data: newTravelPlan,
+        });
+    } catch (error) {
+        console.error("Error creating travel plan:", error);
+
+        return res.status(500).json({
+            status: "error",
+            message: "Failed to create travel plan",
+            error: error.message,
+        });
+    }
 };
 
 //get all travel plans

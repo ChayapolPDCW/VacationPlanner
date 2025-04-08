@@ -26,7 +26,7 @@ router.get("/:id",isAuthenticated, getTravelPlanById);
 
 router.get("/",  getAllTravelPlans);
 
-router.post("/", isAuthenticated, createTravelPlan);
+router.post("/", createTravelPlan);
 
 router.put("/:id", isAuthenticated, updateTravelPlan);
 

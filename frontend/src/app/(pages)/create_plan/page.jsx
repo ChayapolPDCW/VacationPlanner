@@ -281,9 +281,8 @@ export default function CreatePlanPage() {
             setError("Destination is required");
             return;
         }
-    
+        
         try {
-    
             const planData = {
                 title: formData.title,
                 cityTitle: formData.cityTitle,
@@ -308,9 +307,9 @@ export default function CreatePlanPage() {
                 planData,
                 {
                     headers: {
-                        // Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
+                    withCredentials: true, // เพิ่มตัวเลือกนี้เพื่อส่ง cookies ไปกับ request
                 }
             );
             console.log("Plan created:", response.data);

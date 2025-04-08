@@ -41,13 +41,14 @@ export default function LoginPage() {
                     headers: {
                         "Content-Type": "application/json",
                     },
+                    withCredentials: true, // เพิ่มตัวเลือกนี้เพื่อส่ง cookies ไปกับ request
                 }
             );
 
             // const { token } = response.data.data;
             // localStorage.setItem("token", token);
             // console.log("Login successful, token stored:", token);
-            router.push("/");
+            router.push("/home");
         } catch (err) {
             console.error("Error logging in:", err.response?.data);
             setError(err.response?.data?.message || "Failed to log in");
