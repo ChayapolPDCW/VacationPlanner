@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 
+import { FaPencilAlt } from "react-icons/fa";
+
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -134,7 +136,7 @@ export default function ProfilePage() {
               onClick={handleEditProfile}
               className="item-right w-md bg-indigo-500 text-white py-3 pl-4 pr-4 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
             >
-              Edit Profile
+              <FaPencilAlt className="text-lg" />
             </button>
           </div>
         </div>

@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { format } from "date-fns";
 import { FaStar } from "react-icons/fa";
+import { FiHelpCircle } from "react-icons/fi";
 
-// Mock data for plans (copied from your plans page)
+// Mock data for plans (updated to include a private plan for testing)
 const mockPlans = [
   {
     id: 1,
@@ -15,7 +16,7 @@ const mockPlans = [
     total_like: 198,
     user: { username: "user1" },
     description: "A relaxing summer getaway in Bali",
-    visibility: "public",
+    visibility: "public", // Public plan
     itinerary: [
       {
         date: "2024-11-17T00:00:00.000Z",
@@ -87,7 +88,7 @@ const mockPlans = [
     total_like: 167,
     user: { username: "user2" },
     description: "A magical winter trip to Paris",
-    visibility: "public",
+    visibility: "private", // Private plan
     itinerary: [
       {
         date: "2024-08-03T00:00:00.000Z",
@@ -130,34 +131,33 @@ const mockPlans = [
   },
 ];
 
-export default function JournalPage() {
+export default function CreateJournalPage() {
   const router = useRouter();
-  const { id } = useParams(); // Get the plan ID from the URL
+  const { id } = useParams();
   const [plan, setPlan] = useState(null);
   const [formData, setFormData] = useState({
     rating: 0,
     overallMemories: "",
-    itineraryMemories: [], // Array to store memories and photos for each location
+    itineraryMemories: [], 
     favoriteMoment: "",
     tips: "",
-    shareToCommunity: false,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Use mock data instead of fetching from an API
+  
   useEffect(() => {
-    // Simulate fetching the plan data
+    
     const selectedPlan = mockPlans.find((plan) => plan.id === parseInt(id));
     if (selectedPlan) {
       setPlan(selectedPlan);
 
-      // Initialize itineraryMemories with the plan's itinerary
+      
       const initialItineraryMemories = selectedPlan.itinerary.map((day) =>
         day.places.map((place) => ({
           placeId: place.id,
           memories: "",
-          photos: [], // Array to store uploaded photos
+          photo: null, 
         }))
       );
       setFormData((prev) => ({
@@ -189,15 +189,14 @@ export default function JournalPage() {
     setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
   };
 
-  // Handle photo upload
+  // Handle photo upload (only one photo per location)
   const handlePhotoUpload = (dayIndex, placeIndex, e) => {
-    const files = Array.from(e.target.files);
-    const updatedItineraryMemories = [...formData.itineraryMemories];
-    updatedItineraryMemories[dayIndex][placeIndex].photos = [
-      ...updatedItineraryMemories[dayIndex][placeIndex].photos,
-      ...files.map((file) => URL.createObjectURL(file)), // Create a preview URL
-    ];
-    setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
+    const file = e.target.files[0]; // Only take the first file
+    if (file) {
+      const updatedItineraryMemories = [...formData.itineraryMemories];
+      updatedItineraryMemories[dayIndex][placeIndex].photo = URL.createObjectURL(file); // Store a single photo
+      setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
+    }
   };
 
   // Handle form submission (log to console instead of API call)
@@ -212,7 +211,7 @@ export default function JournalPage() {
       itineraryMemories: formData.itineraryMemories,
       favoriteMoment: formData.favoriteMoment,
       tips: formData.tips,
-      shareToCommunity: formData.shareToCommunity,
+      visibility: plan.visibility, // Set journal visibility to match plan visibility
     };
 
     console.log("Journal Data:", journalData);
@@ -237,11 +236,11 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 font-gealova">
+    <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto p-6">
         {/* Title */}
         <h1 className="text-3xl font-bold mb-6 text-black">
-          Journal your {plan.destination || "Trip"}
+          Journal your {plan.destination} Trip!
         </h1>
 
         {/* Overall Trip Rating and Memories */}
@@ -253,8 +252,8 @@ export default function JournalPage() {
             {[1, 2, 3, 4, 5].map((star) => (
               <FaStar
                 key={star}
-                className={`cursor-pointer text-2xl ${
-                  star <= formData.rating ? "text-yellow-400" : "text-gray-300"
+                className={`cursor-pointer text-3xl transition-transform duration-200 transform hover:scale-125 active:scale-100 ${
+                  star <= formData.rating ? "text-indigo-400" : "text-gray-300"
                 }`}
                 onClick={() => handleRatingChange(star)}
               />
@@ -289,7 +288,7 @@ export default function JournalPage() {
                     <img
                       src={place.image || "/images/fallback.jpeg"}
                       alt={place.name}
-                      className="w-24 h-24 rounded-lg"
+                      className="w-48 h-48 rounded-lg shadow-md"
                     />
                     <div className="flex-1">
                       <h4 className="text-md font-medium">{place.name}</h4>
@@ -301,31 +300,29 @@ export default function JournalPage() {
                         onChange={(e) =>
                           handleItineraryMemoriesChange(dayIndex, placeIndex, e.target.value)
                         }
-                        placeholder="Describe your memories here..."
+                        placeholder="What's special here?"
                         className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black mt-2"
                         rows="3"
                       />
                       <div className="mt-2">
-                        <label className="block text-gray-700 mb-2">Add photos...</label>
+                        <label className="block text-gray-700 mb-2">
+                          Capture your favorite moment here! (One photo per location)
+                        </label>
                         <input
                           type="file"
                           accept="image/*"
-                          multiple
                           onChange={(e) => handlePhotoUpload(dayIndex, placeIndex, e)}
                           className="mb-2"
                         />
-                        <div className="flex space-x-2">
-                          {formData.itineraryMemories[dayIndex]?.[placeIndex]?.photos?.map(
-                            (photo, photoIndex) => (
-                              <img
-                                key={photoIndex}
-                                src={photo}
-                                alt={`Uploaded ${photoIndex}`}
-                                className="w-16 h-16 object-cover rounded-lg"
-                              />
-                            )
-                          )}
-                        </div>
+                        {formData.itineraryMemories[dayIndex]?.[placeIndex]?.photo && (
+                          <div className="mt-2">
+                            <img
+                              src={formData.itineraryMemories[dayIndex][placeIndex].photo}
+                              alt="Uploaded moment"
+                              className="w-16 h-16 object-cover shadow-md rounded-lg"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -336,6 +333,10 @@ export default function JournalPage() {
         </div>
 
         {/* Favorite Moment */}
+        <h1 className="text-3xl text-size-700 font-gealova mb-4 font-bold italic tracking-wider text-indigo-600">
+          This journey may end here, but its story lives on...
+        </h1>
+
         <div className="bg-white p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
           <label className="block text-gray-700 mb-2">
             What was your favorite place or moment during the trip? Why?
@@ -363,19 +364,19 @@ export default function JournalPage() {
           />
         </div>
 
-        {/* Share to Community and Save Button */}
+        {/* Visibility Message and Save Button */}
         <div className="flex items-center justify-between">
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={formData.shareToCommunity}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, shareToCommunity: e.target.checked }))
-              }
-              className="form-checkbox h-5 w-5 text-indigo-600"
-            />
-            <span className="text-gray-700">Share to Community</span>
-          </label>
+          <p className="text-gray-700 italic flex items-center gap-1">
+            {plan.visibility === "public"
+              ? "Your journal will be shared to the community."
+              : "Your journal won't be shared to the community."}
+            <span className="relative group cursor-pointer">
+              <FiHelpCircle className="text-gray-500 hover:text-indigo-500" />
+              <span className="absolute bottom-full -translate-x-1/2 mb-2 w-48 p-2 text-sm text-white bg-indigo-400 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 whitespace-wrap text-left">
+                Sharing choice depends on your plan.
+              </span>
+            </span>
+          </p>
           <button
             onClick={handleSubmit}
             className="bg-indigo-500 text-white py-3 px-6 rounded-lg hover:bg-indigo-600 transition-colors duration-200"

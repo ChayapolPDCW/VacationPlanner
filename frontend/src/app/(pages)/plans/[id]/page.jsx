@@ -157,6 +157,10 @@ export default function PlanDetail({ params: paramsPromise }) {
   
   const mapCenter = locations.length > 0 ? [locations[0].lat, locations[0].lng] : [0, 0];
 
+  // Debug the href
+  const journalLink = `/plans/${plan.id}/create_journal`;
+  console.log("Navigating to:", journalLink);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -173,7 +177,7 @@ export default function PlanDetail({ params: paramsPromise }) {
             {format(new Date(plan.endDate), 'd MMM yyyy')}
           </p>
           <p className="text-gray-600">{plan.total_like} Likes</p>
-          <Link href={`/journal/${plan.id}`}>
+          <Link href={journalLink}>
             <button className="mt-2 text-indigo-600 hover:text-indigo-800">
               Journal this Trip
             </button>
