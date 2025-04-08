@@ -1,4 +1,6 @@
 "use client";
+import { useRouter } from "next/navigation";
+
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -137,6 +139,7 @@ const mockPlans = [
 ];
 
 export default function PlanDetail({ params: paramsPromise }) {
+  const router = useRouter();
   // Unwrap params using React.use()
   const params = use(paramsPromise);
   const plan = mockPlans.find(p => p.id === parseInt(params.id));
@@ -164,9 +167,12 @@ export default function PlanDetail({ params: paramsPromise }) {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Link href="/plans" className="text-indigo-600 hover:underline mb-6 inline-block">
-          ← Back to Plans
-        </Link>
+        <button
+              onClick={() => router.back()}
+              className="py-2 px-4 rounded-full border shadow-md bg-indigo-500 text-white hover:bg-indigo-600"
+            >
+              Return
+            </button>
 
         {/* Plan Header */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
