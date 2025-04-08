@@ -14,21 +14,21 @@ import {
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { toast } from 'react-toastify';
 
-import { FaCheck } from 'react-icons/fa';
-import { FaPen } from "react-icons/fa";
 import { FaRegTrashAlt } from "react-icons/fa";
 
 export default function CreatePlanPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({
-        destination: "",
-        startDate: startOfDay(new Date()), // Normalize to start of day
-        endDate: startOfDay(new Date()),   // Normalize to start of day
+        title: "",
+        cityTitle: "",
+        start_date: startOfDay(new Date()),
+        end_date: startOfDay(new Date()),
         center: { lat: 0, lng: 0 },
-        planName: "",
+        notes: "",
+        visibility: "PRIVATE",
     });
 
-    const [isEditingDestination, setIsEditingDestination] = useState(true);
+    const [isEditingCityTitle, setIsEditingCityTitle] = useState(true);
     const [itinerary, setItinerary] = useState([]);
     const [error, setError] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
@@ -38,8 +38,6 @@ export default function CreatePlanPage() {
     const [step, setStep] = useState(1);
     const [directions, setDirections] = useState({});
     const [activeDayIndex, setActiveDayIndex] = useState(null);
-    const [editingDescription, setEditingDescription] = useState({});
-    const [editMode, setEditMode] = useState({});
     const autocompleteRef = useRef(null);
     const placeAutocompleteRefs = useRef([]);
     const placeInputRefs = useRef([]);
@@ -78,13 +76,13 @@ export default function CreatePlanPage() {
 
     useEffect(() => {
         if (step >= 2) {
-            const days = differenceInDays(formData.endDate, formData.startDate) + 1;
-            console.log("Start Date:", formData.startDate);
-            console.log("End Date:", formData.endDate);
+            const days = differenceInDays(formData.end_date, formData.start_date) + 1;
+            console.log("Start Date:", formData.start_date);
+            console.log("End Date:", formData.end_date);
             console.log("Days Calculated:", days);
             const newItinerary = [];
             for (let i = 0; i < days; i++) {
-                const date = addDays(formData.startDate, i);
+                const date = addDays(formData.start_date, i);
                 newItinerary.push({
                     date,
                     places: itinerary[i]?.places || [],
@@ -96,37 +94,24 @@ export default function CreatePlanPage() {
             placeInputRefs.current = newItinerary.map(() => null);
             updateDirections(newItinerary);
         }
-    }, [formData.startDate, formData.endDate, step]);
+    }, [formData.start_date, formData.end_date, step]);
 
-    const handleDestinationSubmit = () => {
+    const handleCityTitleSubmit = () => {
         const place = autocompleteRef.current?.getPlace();
-        if (!formData.destination || !place || !place.formatted_address) {
-            setError("Please select a valid destination from the suggestions.");
+        if (!formData.cityTitle || !place || !place.formatted_address) {
+            setError("Please select a valid city from the suggestions.");
             return;
         }
-    
-        let cityName = "";
-        if (place.address_components) {
-            const cityComponent = place.address_components.find((component) =>
-                component.types.includes("locality")
-            );
-            cityName = cityComponent ? cityComponent.long_name : "";
-        }
-    
-        if (!cityName) {
-            cityName = formData.destination.split(",")[0].trim();
-        }
-    
+
         setFormData({
             ...formData,
-            planName: `${cityName} Trip`,
             center: {
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng(),
             },
         });
-    
-        setIsEditingDestination(false);
+
+        setIsEditingCityTitle(false);
         setError("");
         if (step < 2) {
             setStep(2);
@@ -136,28 +121,35 @@ export default function CreatePlanPage() {
     const handleChange = (e) => {
         setFormData({
             ...formData,
-            destination: e.target.value,
+            [e.target.name]: e.target.value,
         });
         setError("");
     };
 
+    const handleVisibilityChange = (e) => {
+        setFormData({
+            ...formData,
+            visibility: e.target.checked ? "PUBLIC" : "PRIVATE",
+        });
+    };
+
     const handleStartDateChange = (e) => {
-        const newStartDate = startOfDay(new Date(e.target.value)); // Normalize to start of day
-        if (formData.endDate < newStartDate) {
-            setFormData({ ...formData, startDate: newStartDate, endDate: newStartDate });
+        const newStartDate = startOfDay(new Date(e.target.value));
+        if (formData.end_date < newStartDate) {
+            setFormData({ ...formData, start_date: newStartDate, end_date: newStartDate });
         } else {
-            setFormData({ ...formData, startDate: newStartDate });
+            setFormData({ ...formData, start_date: newStartDate });
         }
     };
 
     const handleEndDateChange = (e) => {
-        const newEndDate = startOfDay(new Date(e.target.value)); // Normalize to start of day
-        if (newEndDate < formData.startDate) {
+        const newEndDate = startOfDay(new Date(e.target.value));
+        if (newEndDate < formData.start_date) {
             setError("End Date cannot be before Start Date");
             return;
         }
         setError("");
-        setFormData({ ...formData, endDate: newEndDate });
+        setFormData({ ...formData, end_date: newEndDate });
     };
 
     const handlePlaceSelect = () => {
@@ -165,10 +157,10 @@ export default function CreatePlanPage() {
         if (place && place.formatted_address) {
             setFormData({
                 ...formData,
-                destination: place.formatted_address,
+                cityTitle: place.formatted_address,
             });
         } else {
-            setError("Please select a valid destination from the suggestions.");
+            setError("Please select a valid city from the suggestions.");
         }
     };
 
@@ -184,14 +176,14 @@ export default function CreatePlanPage() {
             }
 
             const waypoints = places.slice(1, -1).map((place) => ({
-                location: { lat: place.lat, lng: place.lng },
+                location: { lat: place.latitude, lng: place.longitude },
                 stopover: true,
             }));
 
             directionsService.route(
                 {
-                    origin: { lat: places[0].lat, lng: places[0].lng },
-                    destination: { lat: places[places.length - 1].lat, lng: places[places.length - 1].lng },
+                    origin: { lat: places[0].latitude, lng: places[0].longitude },
+                    destination: { lat: places[places.length - 1].latitude, lng: places[places.length - 1].longitude },
                     waypoints,
                     travelMode: window.google.maps.TravelMode.DRIVING,
                 },
@@ -232,18 +224,15 @@ export default function CreatePlanPage() {
     const handleAddPlace = (dayIndex) => {
         if (placeAutocompleteRefs.current[dayIndex]) {
             const place = placeAutocompleteRefs.current[dayIndex].getPlace();
-            if (place && place.geometry) {
+            if (place && place.geometry && place.place_id) {
                 const newPlace = {
-                    id: Date.now(),
-                    name: place.name,
-                    address: place.formatted_address || "No address available",
-                    description: "",
-                    customDescription: "",
-                    image: place.photos && place.photos.length > 0
+                    title: place.name,
+                    latitude: place.geometry.location.lat(),
+                    longitude: place.geometry.location.lng(),
+                    photoUrl: place.photos && place.photos.length > 0
                         ? place.photos[0].getUrl({ maxWidth: 100, maxHeight: 100 })
                         : "/images/fallback.jpeg",
-                    lat: place.geometry.location.lat(),
-                    lng: place.geometry.location.lng(),
+                    googlePlaceId: place.place_id,
                     travelTime: "TBD",
                 };
     
@@ -252,22 +241,19 @@ export default function CreatePlanPage() {
                 setItinerary(updatedItinerary);
                 updateDirections(updatedItinerary);
     
-                setEditMode(prev => ({ ...prev, [newPlace.id]: true }));
-    
                 if (placeInputRefs.current[dayIndex]) {
                     placeInputRefs.current[dayIndex].value = "";
                 }
             } else {
-                console.log("No geometry available for this place");
+                console.log("No geometry or place_id available for this place");
+                toast.error("Please select a valid place with location data.");
             }
         }
     };
 
-    const handleDeletePlace = (dayIndex, placeId) => {
+    const handleDeletePlace = (dayIndex, placeIndex) => {
         const updatedItinerary = [...itinerary];
-        updatedItinerary[dayIndex].places = updatedItinerary[dayIndex].places.filter(
-            (place) => place.id !== placeId
-        );
+        updatedItinerary[dayIndex].places.splice(placeIndex, 1);
         setItinerary(updatedItinerary);
         updateDirections(updatedItinerary);
     };
@@ -283,60 +269,37 @@ export default function CreatePlanPage() {
         updateDirections(updatedItinerary);
     };
 
-    const handleDescriptionChange = (dayIndex, placeId, value) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary[dayIndex].places.find(p => p.id === placeId);
-        if (place) {
-            place.customDescription = value;
-            setItinerary(updatedItinerary);
-            setEditingDescription(prev => ({ ...prev, [placeId]: value !== "" }));
-        }
-    };
-    
-    const handleSaveDescription = (dayIndex, placeId) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary[dayIndex].places.find(p => p.id === placeId);
-        if (place) {
-            place.description = place.customDescription !== undefined ? place.customDescription : place.description;
-            setItinerary(updatedItinerary);
-            setEditingDescription(prev => ({ ...prev, [placeId]: false }));
-            setEditMode(prev => ({ ...prev, [placeId]: false }));
-        }
-    };
-    
-    const handleEditDescription = (placeId) => {
-        const updatedItinerary = [...itinerary];
-        const place = updatedItinerary.flatMap(day => day.places).find(p => p.id === placeId);
-        if (place) {
-            place.customDescription = place.description;
-            setItinerary(updatedItinerary);
-        }
-        setEditMode(prev => ({ ...prev, [placeId]: true }));
-    };
-    
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
     
-        if (!formData.destination) {
+        if (!formData.title) {
+            setError("Plan name is required");
+            return;
+        }
+        if (!formData.cityTitle) {
             setError("Destination is required");
             return;
         }
     
         try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                setError("Please log in to create a plan");
-                return;
-            }
     
             const planData = {
-                destination: formData.destination,
-                startDate: formData.startDate,
-                endDate: formData.endDate,
+                title: formData.title,
+                cityTitle: formData.cityTitle,
+                startDate: formData.start_date.toISOString(),
+                endDate: formData.end_date.toISOString(),
+                notes: formData.notes,
+                visibility: formData.visibility,
                 itinerary: itinerary.map((day) => ({
-                    date: day.date,
-                    places: day.places,
+                    startDate: day.date.toISOString(),
+                    places: day.places.map((place) => ({
+                        title: place.title,
+                        latitude: place.latitude,
+                        longitude: place.longitude,
+                        photoUrl: place.photoUrl,
+                        googlePlaceId: place.googlePlaceId,
+                    })),
                 })),
             };
     
@@ -345,31 +308,37 @@ export default function CreatePlanPage() {
                 planData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        // Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
                 }
             );
             console.log("Plan created:", response.data);
+            toast.success("Travel plan created successfully!");
             setHasUnsavedChanges(false);
             setItinerary([]);
             setFormData({
-                destination: "",
-                startDate: startOfDay(new Date()),
-                endDate: startOfDay(new Date()),
+                title: "",
+                cityTitle: "",
+                start_date: startOfDay(new Date()),
+                end_date: startOfDay(new Date()),
                 center: { lat: 0, lng: 0 },
+                notes: "",
+                visibility: "PRIVATE",
             });
             localStorage.removeItem("itinerary");
             localStorage.removeItem("formData");
             router.push("/plans");
         } catch (err) {
             console.error("Error creating plan:", err);
-            setError(err.response?.data?.message || "Failed to create plan");
+            const errorMessage = err.response?.data?.message || "Failed to create plan";
+            setError(errorMessage);
+            toast.error(errorMessage);
         }
     };
 
     const handleDatesSubmit = () => {
-        if (formData.endDate < formData.startDate) {
+        if (formData.end_date < formData.start_date) {
             setError("End Date cannot be before Start Date");
             return;
         }
@@ -398,22 +367,32 @@ export default function CreatePlanPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Side: Form and Itinerary */}
                                 <div>
-                                    {formData.planName && step >= 2 ? (
-                                        <h1 className="text-3xl font-bold mb-6 text-black">
-                                            {formData.planName}
-                                        </h1>
-                                    ) : (
-                                        <h1 className="text-3xl font-bold mb-6 text-black">Create Plan</h1>
-                                    )}
-                                    {/* Step 1: Select Destination */}
+                                    <h1 className="text-3xl font-bold mb-6 text-black">
+                                        Create Plan
+                                    </h1>
+                                    {/* Step 0: Enter plan name */}
+                                    <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+                                        <label className="block text-gray-700 mb-2">
+                                            Enter your plan name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="title"
+                                            value={formData.title}
+                                            onChange={handleChange}
+                                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                            placeholder="e.g. Summer in Bali"
+                                        />
+                                    </div>
+                                    {/* Step 1: Select City */}
                                     <div className="bg-white p-6 rounded-lg shadow-md">
                                         <div className="mb-4">
                                             <label className="block text-gray-700 mb-2">
-                                                Where do you want to go? (e.g. "New York, NY, USA")
+                                                What city do you want to go? (e.g., "New York, NY, USA")
                                             </label>
                                             {isMapLoaded ? (
-                                                <div className="flex items-center space-x-2">
-                                                    {isEditingDestination ? (
+                                                <>
+                                                    {isEditingCityTitle ? (
                                                         <Autocomplete
                                                             onLoad={(autocomplete) => {
                                                                 autocompleteRef.current = autocomplete;
@@ -422,37 +401,37 @@ export default function CreatePlanPage() {
                                                         >
                                                             <input
                                                                 type="text"
-                                                                name="destination"
-                                                                value={formData.destination}
+                                                                name="cityTitle"
+                                                                value={formData.cityTitle}
                                                                 onChange={handleChange}
                                                                 className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
-                                                                placeholder="Enter a destination"
+                                                                placeholder="Enter a city"
                                                                 required
                                                             />
                                                         </Autocomplete>
                                                     ) : (
-                                                        <input
-                                                            type="text"
-                                                            name="destination"
-                                                            value={formData.destination}
-                                                            className="w-full p-3 border rounded-lg bg-gray-100 cursor-not-allowed text-black"
-                                                            readOnly
-                                                        />
+                                                        <div>
+                                                            <input
+                                                                type="text"
+                                                                name="cityTitle"
+                                                                value={formData.cityTitle}
+                                                                className="w-full p-3 border rounded-lg bg-gray-100 cursor-not-allowed text-black"
+                                                                readOnly
+                                                            />
+                                                            <button
+                                                                onClick={() => setIsEditingCityTitle(true)}
+                                                                className="mt-2 text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                        </div>
                                                     )}
-                                                    {!isEditingDestination && (
-                                                        <button
-                                                            onClick={() => setIsEditingDestination(true)}
-                                                            className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                </>
                                             ) : (
                                                 <input
                                                     type="text"
-                                                    name="destination"
-                                                    value={formData.destination}
+                                                    name="cityTitle"
+                                                    value={formData.cityTitle}
                                                     onChange={handleChange}
                                                     className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                                     placeholder="Loading..."
@@ -461,12 +440,12 @@ export default function CreatePlanPage() {
                                             )}
                                         </div>
                                         {error && <p className="text-red-600">{error}</p>}
-                                        {isEditingDestination && (
+                                        {isEditingCityTitle && (
                                             <button
-                                                onClick={handleDestinationSubmit}
+                                                onClick={handleCityTitleSubmit}
                                                 className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
                                             >
-                                                {step < 2 ? "Save Destination" : "Save Destination"}
+                                                Save destination
                                             </button>
                                         )}
                                     </div>
@@ -480,9 +459,9 @@ export default function CreatePlanPage() {
                                                     </label>
                                                     <input
                                                         type="date"
-                                                        value={format(formData.startDate, "yyyy-MM-dd")}
+                                                        value={format(formData.start_date, "yyyy-MM-dd")}
                                                         onChange={handleStartDateChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
                                                     />
                                                 </div>
                                                 <div>
@@ -491,10 +470,10 @@ export default function CreatePlanPage() {
                                                     </label>
                                                     <input
                                                         type="date"
-                                                        value={format(formData.endDate, "yyyy-MM-dd")}
+                                                        value={format(formData.end_date, "yyyy-MM-dd")}
                                                         onChange={handleEndDateChange}
-                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                                                        min={format(formData.startDate, "yyyy-MM-dd")}
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                                        min={format(formData.start_date, "yyyy-MM-dd")}
                                                     />
                                                 </div>
                                             </div>
@@ -516,7 +495,7 @@ export default function CreatePlanPage() {
                                             <div className="flex-1 bg-white p-6 rounded-lg shadow-md mt-6 overflow-y-auto pt-0">
                                                 <div className="sticky top-0 bg-white z-10 border-b -mx-6 px-6 pt-6">
                                                     <h2 className="text-2xl font-semibold text-black mb-4">
-                                                        Itinerary - {differenceInDays(formData.endDate, formData.startDate) + 1} Days
+                                                        Itinerary - {differenceInDays(formData.end_date, formData.start_date) + 1} Days
                                                     </h2>
                                                     {errorMessage && (
                                                         <p className="text-red-600 mb-4">{errorMessage}</p>
@@ -537,8 +516,8 @@ export default function CreatePlanPage() {
                                                                     >
                                                                         {day.places.map((place, placeIndex) => (
                                                                             <Draggable
-                                                                                key={place.id}
-                                                                                draggableId={String(place.id)}
+                                                                                key={`${index}-${placeIndex}`}
+                                                                                draggableId={`${index}-${placeIndex}`}
                                                                                 index={placeIndex}
                                                                             >
                                                                                 {(provided) => (
@@ -552,60 +531,20 @@ export default function CreatePlanPage() {
                                                                                             {placeIndex + 1}
                                                                                         </div>
                                                                                         <img
-                                                                                            src={place.image}
-                                                                                            alt={place.name}
+                                                                                            src={place.photoUrl}
+                                                                                            alt={place.title}
                                                                                             className="w-24 h-24 rounded-lg mr-4"
                                                                                         />
                                                                                         <div className="flex-1">
                                                                                             <h4 className="text-md font-medium">
-                                                                                                {place.name}
+                                                                                                {place.title}
                                                                                             </h4>
-                                                                                            <p className="text-sm text-gray-600">
-                                                                                                {place.address}
-                                                                                            </p>
-                                                                                            <hr className="my-2 border-gray-300" />
-                                                                                            <div className="mt-2">
-                                                                                                <label className="text-sm font-medium text-gray-700">
-                                                                                                    Note
-                                                                                                </label>
-                                                                                                {editMode[place.id] ? (
-                                                                                                    <div className="flex items-start space-x-2 mt-1">
-                                                                                                        <textarea
-                                                                                                            value={place.customDescription}
-                                                                                                            onChange={(e) => handleDescriptionChange(index, place.id, e.target.value)}
-                                                                                                            placeholder="e.g. The mall opens at 10 AM."
-                                                                                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black text-sm resize-y min-h-[80px]"
-                                                                                                            rows="3"
-                                                                                                        />
-                                                                                                        <button
-                                                                                                            onClick={() => handleSaveDescription(index, place.id)}
-                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium mt-2"
-                                                                                                            title="Save note"
-                                                                                                            aria-label="Save note"
-                                                                                                        >
-                                                                                                            <FaCheck className="text-lg mr-3 ml-1" />
-                                                                                                        </button>
-                                                                                                    </div>
-                                                                                                ) : (
-                                                                                                    <div className="flex items-center space-x-2 mt-1">
-                                                                                                        <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                                                                                                            {place.description || "Add some note here."}
-                                                                                                        </p>
-                                                                                                        <button
-                                                                                                            onClick={() => handleEditDescription(place.id)}
-                                                                                                            className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
-                                                                                                        >
-                                                                                                            <FaPen className="text-md mr-3 ml-1" />
-                                                                                                        </button>
-                                                                                                    </div>
-                                                                                                )}
-                                                                                            </div>
                                                                                             <p className="text-xs text-gray-500 mt-1">
                                                                                                 Travel Time to Next Location: {place.travelTime}
                                                                                             </p>
                                                                                         </div>
                                                                                         <button
-                                                                                            onClick={() => handleDeletePlace(index, place.id)}
+                                                                                            onClick={() => handleDeletePlace(index, placeIndex)}
                                                                                             className="ml-4 text-red-600 hover:text-red-800 font-medium"
                                                                                         >
                                                                                             <FaRegTrashAlt className="text-xl mr-3 ml-1" />
@@ -647,13 +586,40 @@ export default function CreatePlanPage() {
                                                         </div>
                                                     ))}
                                                 </DragDropContext>
+
+                                                {/* Note Section for the Entire Plan */}
+                                                <div className="mt-6">
+                                                    <h2 className="text-xl font-semibold text-black mb-2">
+                                                        Notes
+                                                    </h2>
+                                                    <textarea
+                                                        name="notes"
+                                                        value={formData.notes}
+                                                        onChange={handleChange}
+                                                        placeholder="Add any notes for your plan here (e.g., 'Bring sunscreen for Bali beaches!')"
+                                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                                        rows="4"
+                                                    />
+                                                </div>
                                             </div>
-                                            <button
-                                                onClick={handleSubmit}
-                                                className="w-full bg-blue-600 text-white py-3 mt-4 shadow-lg rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                                            >
-                                                Save Plan
-                                            </button>
+                                            {/* Visibility Checkbox and Save Plan Button */}
+                                            <div className="mt-4">
+                                                <label className="flex items-center space-x-2 text-black">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.visibility === "PUBLIC"}
+                                                        onChange={handleVisibilityChange}
+                                                        className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                    />
+                                                    <span>Share to the community</span>
+                                                </label>
+                                                <button
+                                                    onClick={handleSubmit}
+                                                    className="w-full bg-indigo-600 text-white py-3 mt-2 shadow-lg rounded-lg hover:bg-indigo-700 transition-colors duration-200"
+                                                >
+                                                    Save Plan
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -665,15 +631,15 @@ export default function CreatePlanPage() {
                                         <GoogleMap
                                             mapContainerStyle={{ width: "100%", height: "100%" }}
                                             center={formData.center}
-                                            zoom={formData.destination ? 14 : 2}
+                                            zoom={formData.cityTitle ? 14 : 2}
                                         >
                                             {itinerary
                                                 .filter((day, dayIndex) => activeDayIndex === null || dayIndex === activeDayIndex)
                                                 .flatMap((day, dayIndex) =>
                                                     day.places.map((place, placeIndex) => (
                                                         <Marker
-                                                            key={place.id}
-                                                            position={{ lat: place.lat, lng: place.lng }}
+                                                            key={`${dayIndex}-${placeIndex}`}
+                                                            position={{ lat: place.latitude, lng: place.longitude }}
                                                             icon={{
                                                                 path: window.google.maps.SymbolPath.CIRCLE,
                                                                 fillColor: dayColors[dayIndex % dayColors.length],
@@ -682,12 +648,12 @@ export default function CreatePlanPage() {
                                                                 strokeWeight: 2,
                                                                 scale: 12,
                                                             }}
-                                                            title={place.name}
+                                                            title={place.title}
                                                             label={{
-                                                                text: String(placeIndex + 1), // Convert to string for the label
-                                                                color: "#FFFFFF", // White text for contrast against the colored circle
-                                                                fontSize: "11px", // Smaller font size to fit inside the circle
-                                                                fontWeight: "bold", // Bold text for better readability
+                                                                text: String(placeIndex + 1),
+                                                                color: "#FFFFFF",
+                                                                fontSize: "11px",
+                                                                fontWeight: "bold",
                                                             }}
                                                         />
                                                     ))
@@ -705,7 +671,7 @@ export default function CreatePlanPage() {
                                                                     strokeOpacity: 0.8,
                                                                     strokeWeight: 5,
                                                                 },
-                                                                suppressMarkers: true, // Suppress default markers
+                                                                suppressMarkers: true,
                                                             }}
                                                         />
                                                     ) : null
