@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
+import Image from "next/image";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -14,7 +15,10 @@ export default function EditProfilePage() {
     created_at: "",
     updated_at: "",
   });
+  const [avatarFile, setAvatarFile] = useState(null); // Store the selected file
+  const [avatarPreview, setAvatarPreview] = useState(null); // Store the preview URL
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Mock data (replace with API calls later)
   useEffect(() => {
@@ -24,7 +28,7 @@ export default function EditProfilePage() {
       username: "SamanthaJones",
       email: "samantha.jones@example.com",
       password: "hashedpassword123",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
+      avatar: "",
       created_at: "2023-01-15T10:00:00Z",
       updated_at: "2024-04-07T14:30:00Z",
     };
@@ -38,41 +42,13 @@ export default function EditProfilePage() {
       created_at: mockUser.created_at,
       updated_at: mockUser.updated_at,
     });
+
+    // Set the initial avatar preview to the current avatar
+    setAvatarPreview(mockUser.avatar);
     setIsLoading(false);
-
-    // Replace this with real API calls when ready
-    /*
-    const fetchUserData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          router.push("/login");
-          return;
-        }
-
-        const userResponse = await axios.get("http://localhost:5000/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const user = userResponse.data;
-        setFormData({
-          username: user.username,
-          email: user.email,
-          password: user.password,
-          avatar: user.avatar,
-          created_at: user.created_at,
-          updated_at: user.updated_at,
-        });
-      } catch (err) {
-        console.error("Error fetching user data:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUserData();
-    */
   }, [router]);
 
-  // Handle input changes for editable fields
+  // Handle input changes for editable fields (username, password)
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -80,46 +56,75 @@ export default function EditProfilePage() {
     });
   };
 
+  // Handle avatar file selection and preview
+  const handleUploadPicture = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      const previewUrl = URL.createObjectURL(file); // Create a local URL for preview
+      setAvatarPreview(previewUrl);
+    }
+  };
+
   // Handle form submission (mock update for now)
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
+    // Mock avatar upload logic
+    let avatarUrl = formData.avatar; // Default to existing avatar URL
+    if (avatarFile) {
+      // Simulate a successful upload
+      console.log("Mock uploading avatar file:", avatarFile.name);
+      avatarUrl = URL.createObjectURL(avatarFile); // Use the local URL for now
+
+      // Replace this with a real API call to upload the avatar
+      /*
+      try {
+        const avatarFileUploadForm = new FormData();
+        avatarFileUploadForm.append("avatarFile", avatarFile);
+
+        const avatarFileUploadResponse = await axios.post(
+          "http://localhost:5000/api/files/avatars",
+          avatarFileUploadForm,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        if (avatarFileUploadResponse.status !== 200) {
+          setError("Error uploading avatar file");
+          return;
+        }
+
+        console.log("avatarFileUploadResponse.data.url:", avatarFileUploadResponse.data.url);
+        avatarUrl = avatarFileUploadResponse.data.url;
+      } catch (err) {
+        console.error("Error uploading avatar:", err);
+        setError("Error uploading avatar file");
+        return;
+      }
+      */
+    }
+
     // Mock update logic
     console.log("Updated user data:", {
       username: formData.username,
       password: formData.password,
-      avatar: formData.avatar,
+      avatar: avatarUrl,
     });
 
-    // Update the updated_at field to the current time
+    // Update the formData with the new avatar URL and updated_at
     setFormData({
       ...formData,
+      avatar: avatarUrl,
       updated_at: new Date().toISOString(),
     });
 
     // Navigate back to the profile page
     router.push("/profile");
-
-    // Replace this with a real API call to update the user
-    /*
-    const updateUser = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        await axios.put(
-          "http://localhost:5000/api/users/me",
-          {
-            username: formData.username,
-            password: formData.password,
-            avatar: formData.avatar,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        router.push("/profile");
-      } catch (err) {
-        console.error("Error updating user:", err);
-      }
-    };
-    updateUser();
-    */
   };
 
   // Handle loading state
@@ -134,35 +139,45 @@ export default function EditProfilePage() {
   return (
     <div className="max-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="relative w-full max-w-4xl p-6">
+        <h1 className="text-3xl font-bold text-indigo-500 text-center mb-4">Edit Profile</h1>
         {/* Gradient Background */}
         <div className="h-60 w-full bg-gradient-to-r from-indigo-600 to-blue-400 rounded-lg"></div>
 
         {/* White Card Section */}
         <div className="bg-white rounded-lg shadow-md -mt-20 mx-4 p-6 relative">
-          {/* Profile Picture */}
-          <div className="flex justify-center -mt-16">
-            <img
-              src={formData.avatar || "/images/default-avatar.png"}
-              alt={`${formData.username}'s avatar`}
-              className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"
-            />
-          </div>
-
           {/* Form Section */}
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-800 text-center">Edit Profile</h1>
+            
 
-            {/* Avatar URL */}
-            <div className="mt-4">
-              <label className="block text-gray-700 mb-2">Avatar URL</label>
-              <input
-                type="text"
-                name="avatar"
-                value={formData.avatar}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
-                placeholder="Enter avatar URL"
-              />
+            {/* Avatar Preview and Upload */}
+            <div className="mb-6 flex flex-col items-center -mt-16">
+              <div className="relative w-32 h-32 mb-4">
+                <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-md">
+                  {avatarPreview || formData.avatar ? (
+                    <Image
+                      src={avatarPreview || formData.avatar}
+                      alt="Avatar preview"
+                      layout="fill"
+                      objectFit="cover"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-gray-400">No Image</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <label className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                Upload Avatar
+                <input
+                  name="avatar"
+                  id="avatarFile"
+                  type="file"
+                  className="hidden"
+                  onChange={handleUploadPicture}
+                  accept="image/*"
+                />
+              </label>
             </div>
 
             {/* Username */}
@@ -218,6 +233,9 @@ export default function EditProfilePage() {
                 </p>
               </div>
             </div>
+
+            {/* Error Message */}
+            {error && <p className="text-red-600 mt-4">{error}</p>}
 
             {/* Save Changes Button */}
             <div className="mt-6">
