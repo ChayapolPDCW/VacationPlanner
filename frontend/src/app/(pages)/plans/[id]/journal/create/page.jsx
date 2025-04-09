@@ -138,31 +138,27 @@ export default function CreateJournalPage() {
   const [formData, setFormData] = useState({
     rating: 0,
     overallMemories: "",
-    itineraryMemories: [], 
+    itineraryPhotos: [], // Changed to store only photos for each location
     favoriteMoment: "",
     tips: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  
   useEffect(() => {
-    
     const selectedPlan = mockPlans.find((plan) => plan.id === parseInt(id));
     if (selectedPlan) {
       setPlan(selectedPlan);
 
-      
-      const initialItineraryMemories = selectedPlan.itinerary.map((day) =>
-        day.places.map((place) => ({
-          placeId: place.id,
-          memories: "",
-          photo: null, 
+      // Initialize itineraryPhotos to store photos for each location
+      const initialItineraryPhotos = selectedPlan.itinerary.map((day) =>
+        day.places.map(() => ({
+          photo: null, // Only store a photo for each place
         }))
       );
       setFormData((prev) => ({
         ...prev,
-        itineraryMemories: initialItineraryMemories,
+        itineraryPhotos: initialItineraryPhotos,
       }));
       setLoading(false);
     } else {
@@ -182,20 +178,13 @@ export default function CreateJournalPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle itinerary memories change
-  const handleItineraryMemoriesChange = (dayIndex, placeIndex, value) => {
-    const updatedItineraryMemories = [...formData.itineraryMemories];
-    updatedItineraryMemories[dayIndex][placeIndex].memories = value;
-    setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
-  };
-
   // Handle photo upload (only one photo per location)
   const handlePhotoUpload = (dayIndex, placeIndex, e) => {
     const file = e.target.files[0]; // Only take the first file
     if (file) {
-      const updatedItineraryMemories = [...formData.itineraryMemories];
-      updatedItineraryMemories[dayIndex][placeIndex].photo = URL.createObjectURL(file); // Store a single photo
-      setFormData((prev) => ({ ...prev, itineraryMemories: updatedItineraryMemories }));
+      const updatedItineraryPhotos = [...formData.itineraryPhotos];
+      updatedItineraryPhotos[dayIndex][placeIndex].photo = URL.createObjectURL(file); // Store a single photo
+      setFormData((prev) => ({ ...prev, itineraryPhotos: updatedItineraryPhotos }));
     }
   };
 
@@ -208,7 +197,7 @@ export default function CreateJournalPage() {
       planId: id,
       rating: formData.rating,
       overallMemories: formData.overallMemories,
-      itineraryMemories: formData.itineraryMemories,
+      itineraryPhotos: formData.itineraryPhotos,
       favoriteMoment: formData.favoriteMoment,
       tips: formData.tips,
       visibility: plan.visibility, // Set journal visibility to match plan visibility
@@ -243,96 +232,92 @@ export default function CreateJournalPage() {
           Journal your {plan.destination} Trip!
         </h1>
 
-        {/* Overall Trip Rating and Memories */}
-        <div className="bg-white p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
-          <label className="block text-gray-700 mb-2">
-            How would you rate the trip overall?
-          </label>
-          <div className="flex mb-4">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <FaStar
-                key={star}
-                className={`cursor-pointer text-3xl transition-transform duration-200 transform hover:scale-125 active:scale-100 ${
-                  star <= formData.rating ? "text-indigo-400" : "text-gray-300"
-                }`}
-                onClick={() => handleRatingChange(star)}
-              />
-            ))}
-          </div>
-          <textarea
-            name="overallMemories"
-            value={formData.overallMemories}
-            onChange={handleInputChange}
-            placeholder="Describe your memories here..."
-            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
-            rows="4"
-          />
-        </div>
-
-        {/* Itinerary Section */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-black mb-4">
-            Itinerary - {plan.itinerary.length} Days
-          </h2>
-          {plan.itinerary.map((day, dayIndex) => (
-            <div key={dayIndex} className="mb-6">
-              <h3 className="text-lg font-medium text-indigo-600 mb-2">
-                {format(new Date(day.date), "d MMMM yyyy")}
-              </h3>
-              {day.places.map((place, placeIndex) => (
-                <div
-                  key={place.id}
-                  className="bg-white p-6 rounded-lg shadow-md mb-4 border border-indigo-200"
-                >
-                  <div className="flex items-start space-x-4">
-                    <img
-                      src={place.image || "/images/fallback.jpeg"}
-                      alt={place.name}
-                      className="w-48 h-48 rounded-lg shadow-md"
-                    />
-                    <div className="flex-1">
-                      <h4 className="text-md font-medium">{place.name}</h4>
-                      <p className="text-sm text-gray-600">{place.description}</p>
-                      <textarea
-                        value={
-                          formData.itineraryMemories[dayIndex]?.[placeIndex]?.memories || ""
-                        }
-                        onChange={(e) =>
-                          handleItineraryMemoriesChange(dayIndex, placeIndex, e.target.value)
-                        }
-                        placeholder="What's special here?"
-                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black mt-2"
-                        rows="3"
+        {/* Two-column layout: Itinerary on the left, Rating on the right */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Left Side: Itinerary Section with limited height and scrolling */}
+          
+          <div className="max-h-[70vh] overflow-y-auto bg-white p-6 rounded-lg shadow-md border border-indigo-200">
+            <div>
+              <h2 className="text-2xl font-semibold text-black mb-4 sticky top-0 z-10">
+                Itinerary - {plan.itinerary.length} Days
+              </h2>
+            </div>
+            
+            {plan.itinerary.map((day, dayIndex) => (
+              <div key={dayIndex} className="mb-6">
+                <h3 className="text-lg font-medium text-indigo-600 mb-2">
+                  {format(new Date(day.date), "d MMMM yyyy")}
+                </h3>
+                {day.places.map((place, placeIndex) => (
+                  <div
+                    key={place.id}
+                    className="bg-white p-6 rounded-lg shadow-md mb-4 border border-indigo-200"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <img
+                        src={place.image || "/images/fallback.jpeg"}
+                        alt={place.name}
+                        className="w-48 h-48 rounded-lg shadow-md"
                       />
-                      <div className="mt-2">
-                        <label className="block text-gray-700 mb-2">
-                          Capture your favorite moment here! (One photo per location)
-                        </label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handlePhotoUpload(dayIndex, placeIndex, e)}
-                          className="mb-2"
-                        />
-                        {formData.itineraryMemories[dayIndex]?.[placeIndex]?.photo && (
-                          <div className="mt-2">
-                            <img
-                              src={formData.itineraryMemories[dayIndex][placeIndex].photo}
-                              alt="Uploaded moment"
-                              className="w-16 h-16 object-cover shadow-md rounded-lg"
-                            />
-                          </div>
-                        )}
+                      <div className="flex-1">
+                        <h4 className="text-md font-medium">{place.name}</h4>
+                        <p className="text-sm text-gray-600">{place.description}</p>
+                        <div className="mt-6">
+                          <label className="block text-gray-700 mb-2">
+                            Post your favorite moment here! (1 photo per location)
+                          </label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handlePhotoUpload(dayIndex, placeIndex, e)}
+                            className="mb-2"
+                          />
+                          {formData.itineraryPhotos[dayIndex]?.[placeIndex]?.photo && (
+                            <div className="mt-2">
+                              <img
+                                src={formData.itineraryPhotos[dayIndex][placeIndex].photo}
+                                alt="Uploaded moment"
+                                className="w-16 h-16 object-cover shadow-md rounded-lg"
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Right Side: Overall Trip Rating and Memories */}
+          <div className="bg-white p-6 rounded-lg shadow-md border border-indigo-200">
+            <label className="block text-gray-700 mb-2">
+              How would you rate the trip overall?
+            </label>
+            <div className="flex mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <FaStar
+                  key={star}
+                  className={`cursor-pointer text-3xl transition-transform duration-200 transform hover:scale-125 active:scale-100 ${
+                    star <= formData.rating ? "text-indigo-400" : "text-gray-300"
+                  }`}
+                  onClick={() => handleRatingChange(star)}
+                />
               ))}
             </div>
-          ))}
+            <textarea
+              name="overallMemories"
+              value={formData.overallMemories}
+              onChange={handleInputChange}
+              placeholder="Describe your memories here..."
+              className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+              rows="4"
+            />
+          </div>
         </div>
 
-        {/* Favorite Moment */}
+        {/* Below Sections: Favorite Moment, Tips, and Save Button */}
         <h1 className="text-3xl text-size-700 font-gealova mb-4 font-bold italic tracking-wider text-indigo-600">
           This journey may end here, but its story lives on...
         </h1>
@@ -351,7 +336,6 @@ export default function CreateJournalPage() {
           />
         </div>
 
-        {/* Tips for Next Trip */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6 border border-indigo-200">
           <label className="block text-gray-700 mb-2">Any tips for the next trip?</label>
           <textarea
@@ -364,7 +348,6 @@ export default function CreateJournalPage() {
           />
         </div>
 
-        {/* Visibility Message and Save Button */}
         <div className="flex items-center justify-between">
           <p className="text-gray-700 italic flex items-center gap-1">
             {plan.visibility === "public"

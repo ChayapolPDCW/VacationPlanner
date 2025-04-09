@@ -15,6 +15,7 @@ export default function CommunityPage() {
       end_date: "2024-11-23T00:00:00.000Z",
       total_like: 198,
       user: { username: "user1" },
+      photo_url: "", // Added photo_url
     },
     {
       id: 2,
@@ -23,6 +24,7 @@ export default function CommunityPage() {
       end_date: "2024-08-08T00:00:00.000Z",
       total_like: 167,
       user: { username: "user2" },
+      photo_url: "", // Added photo_url
     },
     {
       id: 3,
@@ -31,6 +33,7 @@ export default function CommunityPage() {
       end_date: "2024-08-23T00:00:00.000Z",
       total_like: 151,
       user: { username: "user3" },
+      photo_url: "", // Added photo_url
     },
     {
       id: 4,
@@ -39,6 +42,7 @@ export default function CommunityPage() {
       end_date: "2024-09-10T00:00:00.000Z",
       total_like: 134,
       user: { username: "user4" },
+      photo_url: "", // Added photo_url
     },
     {
       id: 5,
@@ -47,6 +51,7 @@ export default function CommunityPage() {
       end_date: "2024-10-25T00:00:00.000Z",
       total_like: 122,
       user: { username: "user5" },
+      photo_url: "", // Added photo_url
     },
     {
       id: 6,
@@ -55,21 +60,27 @@ export default function CommunityPage() {
       end_date: "2024-12-07T00:00:00.000Z",
       total_like: 109,
       user: { username: "user6" },
+      photo_url: "", // Added photo_url
     },
   ];
 
-  // State to hold the sorted plans and user interactions
+  
   const [sortedPlans, setSortedPlans] = useState([]);
-  const [likedPlans, setLikedPlans] = useState(new Set()); // Track liked plans
-  const [bookmarkedPlans, setBookmarkedPlans] = useState(new Set()); // Track bookmarked plans
+  const [likedPlans, setLikedPlans] = useState(new Set()); // liked plans
+  const [bookmarkedPlans, setBookmarkedPlans] = useState(new Set()); // bookmarked plans
 
-  // Sort plans by total_like in descending order
+  
   useEffect(() => {
-    const sorted = [...communityPlans].sort((a, b) => b.total_like - a.total_like);
+    const transformedPlans = communityPlans.map((plan) => ({
+      ...plan,
+      plan_id: plan.id, // Map id to plan_id
+      title: plan.name, // Map name to title
+    }));
+    const sorted = [...transformedPlans].sort((a, b) => b.total_like - a.total_like);
     setSortedPlans(sorted);
   }, []);
 
-  // Handle liking/unliking a plan
+  // liking/unliking
   const handleLike = (planId) => {
     setSortedPlans((prevPlans) =>
       prevPlans.map((plan) => {
@@ -93,7 +104,7 @@ export default function CommunityPage() {
     });
   };
 
-  // Handle bookmarking/unbookmarking a plan
+  // bookmarking/unbookmarking
   const handleBookmark = (planId) => {
     setBookmarkedPlans((prev) => {
       const newSet = new Set(prev);
@@ -129,10 +140,10 @@ export default function CommunityPage() {
                 <div className="flex mt-2">
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent click from bubbling to PlanCard's Link
+                      e.stopPropagation(); // Prevent click PlanCard's Link
                       handleLike(plan.id);
                     }}
-                    className={`p-2 rounded-full border shadow-md mr-2 ${
+                    className={`p-2 rounded-full border shadow-md mr-2 transition-transform duration-200 transform hover:scale-110 active:scale-100 ${
                       likedPlans.has(plan.id)
                         ? "bg-red-500 text-white hover:bg-red-600"
                         : "bg-white text-gray-700 hover:bg-red-100"
@@ -145,10 +156,10 @@ export default function CommunityPage() {
 
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent click from bubbling to PlanCard's Link
+                      e.stopPropagation();
                       handleBookmark(plan.id);
                     }}
-                    className={`p-2 rounded-full border shadow-md ${
+                    className={`p-2 rounded-full border shadow-md transition-transform duration-200 transform hover:scale-110 active:scale-100 ${
                       bookmarkedPlans.has(plan.id)
                         ? "bg-indigo-500 text-white hover:bg-indigo-600"
                         : "bg-white text-gray-700 hover:bg-indigo-100"

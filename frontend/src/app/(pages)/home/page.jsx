@@ -102,7 +102,7 @@ export default function Home() {
             Plan your trip, share your journey, and keep your memories – all in one place.
           </h1>
           <Link href="/plans/create">
-            <button className="bg-white text-xl text-indigo-600 font-bold py-3 px-10 rounded-full hover:bg-indigo-100 transition">
+            <button className="bg-white text-xl text-indigo-600 font-bold py-3 px-10 rounded-full transition-transform duration-200 transform hover:scale-110 active:scale-100">
               Plan Your Trip
             </button>
           </Link>
@@ -113,7 +113,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold text-gray-900">Popular Plans</h2>
-          <Link href="/plans" className="text-indigo-600 hover:underline">
+          <Link href="/community" className="text-indigo-600 hover:underline">
             See More in Community
           </Link>
         </div>

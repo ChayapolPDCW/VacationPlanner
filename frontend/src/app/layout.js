@@ -1,4 +1,7 @@
 import { Inter } from 'next/font/google';
+
+import ClientLayout from "./ClientLayout"; // Import the new Client Component
+
 import './globals.css';
 import Navbar from '../components/Navbar';
 import 'leaflet/dist/leaflet.css';
@@ -17,8 +20,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Navbar />
-        {children}
+        <ClientLayout>{children}</ClientLayout>
         <ToastContainer
                 position="top-right"
                 autoClose={3000}

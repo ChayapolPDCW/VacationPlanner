@@ -130,8 +130,8 @@ export default function PlansPage() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">My Plans</h2>
               <Link href="/plans/create">
-                <button className="py-2 px-4 rounded-full border shadow-md bg-indigo-500 text-white hover:bg-indigo-600">
-                  Create a New Plan
+                <button className="py-1 px-4 rounded-full border shadow-md bg-indigo-500 text-white hover:bg-indigo-600 transition-transform duration-200 transform hover:scale-110 active:scale-100">
+                  + Create a New Plan
                 </button>
               </Link>
             </div>

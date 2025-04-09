@@ -53,17 +53,14 @@ export default function Navbar() {
                 </a>
             </div>
             <div className="flex space-x-10">
-                <a href="/home" className="text-indigo-600 font-semibold hover:underline">
+                <a href="/home" className="text-indigo-600 font-semibold transition-transform duration-200 transform hover:scale-110 active:scale-100">
                     Home
                 </a>
-                <a href="/plans" className="text-indigo-600 font-semibold hover:underline">
+                <a href="/plans" className="text-indigo-600 font-semibold transition-transform duration-200 transform hover:scale-110 active:scale-100">
                     Plans
                 </a>
-                <a href="/community" className="text-indigo-600 font-semibold hover:underline">
+                <a href="/community" className="text-indigo-600 font-semibold transition-transform duration-200 transform hover:scale-110 active:scale-100">
                     Community
-                </a>
-                <a href="/journal" className="text-indigo-600 font-semibold hover:underline">
-                    Journal
                 </a>
             </div>
             <div className="absolute right-4 flex items-center">
