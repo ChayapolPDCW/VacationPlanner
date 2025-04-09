@@ -19,6 +19,9 @@ export default function EditProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState(null); // Store the preview URL
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPasswordEditable, setIsPasswordEditable] = useState(false); // Toggle password edit mode
+  const [newPassword, setNewPassword] = useState(""); // Store new password
+  const [confirmPassword, setConfirmPassword] = useState(""); // Store confirm password
 
   // Mock data (replace with API calls later)
   useEffect(() => {
@@ -48,7 +51,7 @@ export default function EditProfilePage() {
     setIsLoading(false);
   }, [router]);
 
-  // Handle input changes for editable fields (username, password)
+  // Handle input changes for editable fields (username)
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -66,10 +69,30 @@ export default function EditProfilePage() {
     }
   };
 
-  // Handle form submission (mock update for now)
+  // Toggle password edit mode
+  const togglePasswordEdit = () => {
+    setIsPasswordEditable(!isPasswordEditable);
+    setNewPassword(""); // Reset new password field
+    setConfirmPassword(""); // Reset confirm password field
+    setError(""); // Clear any errors
+  };
+
+  // Handle form submission (combined profile and password updates)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validate password if editing
+    if (isPasswordEditable) {
+      if (newPassword !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (newPassword.length < 8) {
+        setError("Password must be at least 8 characters long.");
+        return;
+      }
+    }
 
     // Mock avatar upload logic
     let avatarUrl = formData.avatar; // Default to existing avatar URL
@@ -112,14 +135,16 @@ export default function EditProfilePage() {
     // Mock update logic
     console.log("Updated user data:", {
       username: formData.username,
-      password: formData.password,
       avatar: avatarUrl,
+      password: isPasswordEditable ? newPassword : formData.password,
     });
 
-    // Update the formData with the new avatar URL and updated_at
+    // Update the formData with the new data
     setFormData({
       ...formData,
+      username: formData.username,
       avatar: avatarUrl,
+      password: isPasswordEditable ? newPassword : formData.password, // Update password only if edited
       updated_at: new Date().toISOString(),
     });
 
@@ -137,18 +162,16 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="max-h-screen bg-gray-100 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
       <div className="relative w-full max-w-4xl p-6">
         <h1 className="text-3xl font-bold text-indigo-500 text-center mb-4">Edit Profile</h1>
         {/* Gradient Background */}
-        <div className="h-60 w-full bg-gradient-to-r from-indigo-600 to-blue-400 rounded-lg"></div>
+        <div className="h-40 w-full bg-gradient-to-r from-indigo-600 to-blue-400 rounded-lg"></div>
 
         {/* White Card Section */}
-        <div className="bg-white rounded-lg shadow-md -mt-20 mx-4 p-6 relative">
-          {/* Form Section */}
-          <div className="mt-4">
-            
-
+        <div className="bg-white rounded-lg shadow-md -mt-12 mx-4 p-6 relative">
+          {/* Combined Form */}
+          <form onSubmit={handleSubmit}>
             {/* Avatar Preview and Upload */}
             <div className="mb-6 flex flex-col items-center -mt-16">
               <div className="relative w-32 h-32 mb-4">
@@ -205,33 +228,49 @@ export default function EditProfilePage() {
               />
             </div>
 
-            {/* Password */}
+            {/* Password Section */}
             <div className="mt-4">
-              <label className="block text-gray-700 mb-2">Password</label>
+              <label className="block text-gray-700 mb-2">Old Password</label>
               <input
-                type="password"
+                type={isPasswordEditable ? "text" : "password"} // Show text when editing
                 name="password"
                 value={formData.password}
-                onChange={handleChange}
-                className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
-                placeholder="Enter new password"
+                className="w-full p-3 border rounded-lg bg-gray-100 cursor-not-allowed text-black"
+                readOnly
               />
-            </div>
+              <button
+                type="button"
+                onClick={togglePasswordEdit}
+                className="mt-2 text-indigo-500 hover:underline"
+              >
+                {isPasswordEditable ? "Cancel" : "Change Password"}
+              </button>
 
-            {/* Dates Section (Read-only) */}
-            <div className="mt-6">
-              <div className="flex justify-between">
-                <p className="text-sm text-gray-600">Joined:</p>
-                <p className="text-sm text-gray-800">
-                  {format(new Date(formData.created_at), "d MMMM yyyy")}
-                </p>
-              </div>
-              <div className="flex justify-between mt-2">
-                <p className="text-sm text-gray-600">Last Edited:</p>
-                <p className="text-sm text-gray-800">
-                  {format(new Date(formData.updated_at), "d MMMM yyyy, h:mm a")}
-                </p>
-              </div>
+              {/* New Password Fields (Visible only when editing) */}
+              {isPasswordEditable && (
+                <div className="mt-4">
+                  <div>
+                    <label className="block text-gray-700 mb-2">New Password</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-gray-700 mb-2">Confirm Password</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Error Message */}
@@ -240,13 +279,14 @@ export default function EditProfilePage() {
             {/* Save Changes Button */}
             <div className="mt-6">
               <button
-                onClick={handleSubmit}
-                className="w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+                type="submit"
+                className="w-full bg-indigo-500 text-white py-2 rounded-lg hover:bg-indigo-600 transition-colors duration-200 text-sm"
               >
                 Save Changes
               </button>
             </div>
-          </div>
+          </form>
+
         </div>
       </div>
     </div>

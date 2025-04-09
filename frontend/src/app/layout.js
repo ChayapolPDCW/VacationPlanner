@@ -3,9 +3,8 @@ import { Inter } from 'next/font/google';
 import ClientLayout from "./ClientLayout"; // Import the new Client Component
 
 import './globals.css';
-import Navbar from '../components/Navbar';
 import 'leaflet/dist/leaflet.css';
-
+import Footer from "../components/Footer"
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -32,6 +31,7 @@ export default function RootLayout({ children }) {
                 draggable
                 pauseOnHover
             />
+            <Footer/>
       </body>
     </html>
   );

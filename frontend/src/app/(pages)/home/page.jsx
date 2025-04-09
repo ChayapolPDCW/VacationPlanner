@@ -137,36 +137,6 @@ export default function Home() {
           )}
       </div>
 
-      {/* Explore Journals */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-gray-900">Explore Journals</h2>
-        </div>
-        <div className="space-y-4">
-          {journals.slice(0, 3).map(journal => (
-            <div key={journal.id} className="bg-white rounded-lg shadow-md p-4 flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{journal.title}</h3>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-600">by {journal.username}</p>
-                <p className="text-gray-600">{journal.cityTitle}</p>
-                <p className="text-gray-600">
-                  {new Date(journal.startDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })} - {new Date(journal.endDate).toLocaleDateString('en-GB', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
