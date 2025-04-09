@@ -10,6 +10,7 @@ import {
   getTravelPlanById,
   updateTravelPlan,
   deleteTravelPlan,
+  getUserTravelPlans,
 } from "../controllers/travelPlanController.js";
 import {
   createDestination,
@@ -19,12 +20,13 @@ import {
 // Middleware
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 
+
 const router = Router();
 
 // ===== Handlers =====
-router.get("/:id",isAuthenticated, getTravelPlanById);
-
-router.get("/",  getAllTravelPlans);
+router.get("/", getAllTravelPlans);
+router.get("/user", isAuthenticated, getUserTravelPlans);
+router.get("/:id", isAuthenticated, getTravelPlanById);
 
 router.post("/", createTravelPlan);
 

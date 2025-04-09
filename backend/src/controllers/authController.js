@@ -214,6 +214,56 @@ export const login = async (req, res, next) => {
   }
 };
 
+// Check if user is logged in
+export const checkSession = async (req, res) => {
+  try {
+    if (!req.session || !req.session.user) {
+      return res.status(200).json({
+        status: "error",
+        message: "Not authenticated",
+        isAuthenticated: false
+      });
+    }
+
+    // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
+    const user = await prisma.user.findUnique({
+      where: {
+        id: req.session.user.id
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        avatarUrl: true
+      }
+    });
+
+    if (!user) {
+      // ถ้าไม่พบผู้ใช้ในฐานข้อมูล ให้ล้าง session
+      req.session.destroy();
+      return res.status(200).json({
+        status: "error",
+        message: "User not found",
+        isAuthenticated: false
+      });
+    }
+
+    return res.status(200).json({
+      status: "success",
+      message: "User is authenticated",
+      isAuthenticated: true,
+      user: user
+    });
+  } catch (error) {
+    console.error("Error checking session:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 export const logout = async (req, res, next) => {
   try {
     req.session.user = null;

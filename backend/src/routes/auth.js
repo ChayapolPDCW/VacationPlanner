@@ -1,8 +1,8 @@
+import express from "express";
 import { Router } from "express";
 
 // Controllers
-import { register, login, logout } from "../controllers/authController.js";
-
+import { register, login, logout, checkSession } from "../controllers/authController.js";
 
 // Middleware
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
@@ -22,5 +22,7 @@ router.post("/check", isAuthenticated, (req, res) => {
     message: "Authenticated",
   });
 });
+
+router.get("/check-session", isAuthenticated, checkSession);
 
 export default router;

@@ -834,6 +834,8 @@ export const deleteLikes = async (req, res) => {
 
 // THIS IS THE BOOKMARK CONTROLLER VVVVVV-------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+
 export const createBookmark = async (req, res) => {
   try {
 
@@ -937,6 +939,88 @@ export const deleteBookmark = async (req, res) => {
     res.status(418).json({
       status: "error",
       message: "Failed to delete bookmark",
+    });
+  }
+};
+
+
+
+
+
+
+
+//get user's travel plans
+export const getUserTravelPlans = async (req, res) => {
+  try {
+    // ตรวจสอบว่ามี session และมีข้อมูลผู้ใช้หรือไม่
+    if (!req.session || !req.session.user || !req.session.user.id) {
+      return res.status(401).json({
+        status: "error",
+        message: "Not authenticated. Please log in.",
+      });
+    }
+
+    const userId = req.session.user.id;
+
+    const travelPlans = await prisma.travelPlan.findMany({
+      where: {
+        authorId: userId
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+        likedByUsers: {
+          select: {
+            userId: true,
+          },
+        },
+        destinations: {
+          select: {
+            id: true,
+            photoUrl: true,
+          },
+          take: 1, // เอาแค่ destination แรก
+        },
+      },
+    });
+
+    const formattedTravelPlans = travelPlans.map(plan => {
+      // ดึงรูปภาพจาก destination แรก (ถ้ามี)
+      let photoUrl = null;
+      if (plan.destinations && plan.destinations.length > 0 && plan.destinations[0].photoUrl) {
+        photoUrl = plan.destinations[0].photoUrl;
+      }
+      
+      return {
+        id: plan.id,
+        title: plan.title,
+        cityTitle: plan.cityTitle,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        visibility: plan.visibility,
+        totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
+        photoUrl: photoUrl, // เพิ่ม photoUrl
+        user: {
+          id: plan.user.id,
+          username: plan.user.username,
+        },
+      };
+    });
+    
+    res.status(200).json({
+      status: "success",
+      data: formattedTravelPlans,
+    });
+  } catch (error) {
+    console.error("Error getting user travel plans:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to get user travel plans",
+      error: error.message,
     });
   }
 };

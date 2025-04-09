@@ -76,7 +76,7 @@ export default function ProfilePage() {
 
   // Navigate to Edit Profile page
   const handleEditProfile = () => {
-    router.push("/editProfile");
+    router.push("/profile/edit");
   };
 
   return (
