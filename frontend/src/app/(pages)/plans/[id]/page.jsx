@@ -389,7 +389,7 @@ export default function PlanDetail() {
                           ))
                         ) : (
                           <p className="text-gray-500 italic mt-2">
-                            No places added for this day.
+                            No places added for this day
                           </p>
                         )}
                       </div>
