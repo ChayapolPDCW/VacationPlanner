@@ -309,7 +309,7 @@ export default function JournalDetailPage() {
           {/* Left Column: Itinerary Timeline */}
           <div className="lg:col-span-1">
             <div className="relative">
-              <h2 className="text-2xl font-semibold text-indigo-700 mb-6">Timeline</h2>
+              <h2 className="text-2xl font-semibold text-indigo-500 mb-6">Timeline</h2>
               <div className="relative">
                 {/* Vertical Timeline Line */}
                 <div className="absolute left-4 top-0 bottom-0 w-1 bg-indigo-300"></div>
