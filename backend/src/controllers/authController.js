@@ -101,8 +101,6 @@ export const register = async (req, res) => {
 
 // Login User
 export const login = async (req, res, next) => {
-  console.log("hello, world");
-
   try {
     const { email, password } = req.body;
 
@@ -156,6 +154,8 @@ export const login = async (req, res, next) => {
       avatarUrl: checkUser.avatarUrl,
       email: checkUser.email,
       username: checkUser.username,
+      createdAt: checkUser.createdAt,
+      updatedAt: checkUser.updatedAt,
     };
 
     req.session.regenerate(function (err) {
@@ -187,7 +187,9 @@ export const login = async (req, res, next) => {
           id: checkUser.id,
           username: checkUser.username,
           email: checkUser.email,
-          avatarUrl: checkUser.avatarUrl, 
+          avatarUrl: checkUser.avatarUrl,
+          createdAt: checkUser.createdAt,
+          updatedAt: checkUser.updatedAt,
         },
       });
     });
@@ -234,7 +236,9 @@ export const checkSession = async (req, res) => {
         id: true,
         username: true,
         email: true,
-        avatarUrl: true
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 

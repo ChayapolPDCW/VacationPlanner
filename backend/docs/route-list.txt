@@ -19,17 +19,21 @@ PUT         /api/users/{USER_ID}/password           Change user password
 - TravelPlan
 GET         /api/plans                              Get all TravelPlans
 GET         /api/plans/{PLAN_ID}                    Get travelplan this ID
+GET         /api/plans?author_id={USER_ID}          Get all TravelPlans created by the user with this ID
 POST        /api/plans                              Create a new plan
 
 - TravelPlan > Journal
 POST        /api/journals                           Create a new journal
 GET         /api/journals/{PLAN_ID}                 Get journal by this ID
+GET         /api/journals?author_id={USER_ID}       Get all Journals created by the user with this ID
 GET         /api/journals                           Get All everyone journal
 
 - TravelPlan > Bookmarks
+GET         /api/bookmarks?user_id={USER_ID}        Get all Bookmarks made by the user with this ID
 POST        /api/bookmarks/{PLAN_ID}                Create bookmark in travelplan
 DELETE      /api/bookmarks/{PLAN_ID}                Delete this bookmark
 
 - TravelPlan > Likes
+GET         /api/likes?user_id={USER_ID}            Get all Likes made by the user with this ID
 POST        /api/likes/{PLAN_ID}                    Create like for this plan
 DELETE      /api/likes/{PLAN_ID}                    Delete this like by this plan ID

@@ -109,10 +109,21 @@ export const createTravelPlan = async (req, res) => {
 
 //get all travel plans
 export const getAllTravelPlans = async (req, res) => {
+  const whereClause = {};
+  const query = req.query;
+
+  if (query) {
+    if (query.author_id) {
+      console.log(query);
+      whereClause.authorId = parseInt(req.query.author_id);
+    }
+  }
+
   try {
     const travelPlans = await prisma.travelPlan.findMany({
       where: {
-        visibility: "PUBLIC" // เพิ่มเงื่อนไขให้ดึงเฉพาะแผนที่เป็น PUBLIC
+        visibility: "PUBLIC", // เพิ่มเงื่อนไขให้ดึงเฉพาะแผนที่เป็น PUBLIC
+        ...whereClause
       },
       include: {
         user: {
@@ -349,7 +360,7 @@ export const deleteTravelPlan = async (req, res) => {
 
 export const createJournal = async (req, res) => {
   try {
-    const {notes, futureTip, favNotes, rating} = req.body;
+    const {notes, futureTip, favNotes, rating, photoAttachments} = req.body;
     const travelPlanId = req.params.id;
 
     // ตรวจสอบว่ามี session หรือไม่
@@ -365,6 +376,9 @@ export const createJournal = async (req, res) => {
     const travelPlan = await prisma.travelPlan.findUnique({
       where: {
         id: parseInt(travelPlanId),
+      },
+      include: {
+        destinations: true, // รวมข้อมูล destinations เพื่อใช้ในการเชื่อมโยงกับรูปภาพ
       },
     });
 
@@ -384,10 +398,10 @@ export const createJournal = async (req, res) => {
     }
 
     const ratingInt = parseInt(rating);
-    if(ratingInt < 0 || ratingInt > 10){
+    if(ratingInt < 0 || ratingInt > 5){
       return res.status(400).json({
         status: "error",
-        message: "Rating must be between 0 and 10",
+        message: "Rating must be between 0 and 5",
       });
     }
 
@@ -398,47 +412,85 @@ export const createJournal = async (req, res) => {
       });
     }
 
-  if(!favNotes){
-    return res.status(400).json({
-      status: "error",
-      message: "Mood is required",
-    })
-  }
-  if(!futureTip){
-    return res.status(400).json({ 
-      status: "error",
-      message: "Future tip is required",  
-    });
-  }
+    if(!favNotes){
+      return res.status(400).json({
+        status: "error",
+        message: "Mood is required",
+      })
+    }
+    if(!futureTip){
+      return res.status(400).json({ 
+        status: "error",
+        message: "Future tip is required",  
+      });
+    }
 
-  if(!travelPlanId){
-    return res.status(400).json({ 
-      status: "error",
-      message: "Travel plan ID not provided",
-    });
-  }
-  if(!ratingInt){
-    return res.status(400).json({
-      status: "error",
-      message: "Rating is required",
-    })
-  }
+    if(!travelPlanId){
+      return res.status(400).json({ 
+        status: "error",
+        message: "Travel plan ID not provided",
+      });
+    }
+    if(!ratingInt){
+      return res.status(400).json({
+        status: "error",
+        message: "Rating is required",
+      })
+    }
+
+    // สร้าง journal ก่อน
     const journal = await prisma.travelPlanJournal.create({
       data: {
         travelPlanId: parseInt(travelPlanId),
-        notes : notes,
-        futureTip : futureTip,
-        favNotes : favNotes,
-        rating : ratingInt,
+        notes: notes,
+        futureTip: futureTip,
+        favNotes: favNotes,
+        rating: ratingInt,
       },
     });
+
+    // บันทึกรูปภาพลงใน TravelPlanDestinationAttachment
+    if (photoAttachments && Array.isArray(photoAttachments) && photoAttachments.length > 0) {
+      // สร้าง array สำหรับเก็บข้อมูลที่จะบันทึกลงใน TravelPlanDestinationAttachment
+      const attachmentsToCreate = [];
+
+      // วนลูปผ่านรูปภาพที่ส่งมา
+      for (const attachment of photoAttachments) {
+        // หา destination ID จาก placeId ที่ส่งมา
+        const destination = travelPlan.destinations.find(dest => 
+          dest.id === attachment.placeId || 
+          dest.googlePlaceId === attachment.placeId.toString()
+        );
+
+        if (destination) {
+          // ตรวจสอบว่ามี attachment สำหรับ destination นี้อยู่แล้วหรือไม่
+          const existingAttachmentCount = await prisma.travelPlanDestinationAttachment.count({
+            where: {
+              travelPlanDestinationId: destination.id
+            }
+          });
+
+          // สร้างข้อมูลสำหรับบันทึกลงใน TravelPlanDestinationAttachment
+          attachmentsToCreate.push({
+            travelPlanDestinationId: destination.id,
+            url: attachment.photoUrl,
+            order: existingAttachmentCount + 1 // กำหนด order เป็นลำดับถัดไป
+          });
+        }
+      }
+
+      // บันทึกข้อมูลลงใน TravelPlanDestinationAttachment
+      if (attachmentsToCreate.length > 0) {
+        await prisma.travelPlanDestinationAttachment.createMany({
+          data: attachmentsToCreate
+        });
+      }
+    }
 
     res.status(200).json({
       status: "success",
       data: journal,
     });
-
-    
   } catch (error) {
     console.error("Create journal error:", error);
     res.status(500).json({
@@ -584,10 +636,10 @@ export const updateJournal = async (req, res) => {
     };
 
     // เช็คว่า rating อยู่ในช่วงที่กำหนด
-    if (updateData.rating < 0 || updateData.rating > 10) {
+    if (updateData.rating < 0 || updateData.rating > 5) {
       return res.status(400).json({
         status: "error",
-        message: "Rating must be between 0 and 10",
+        message: "Rating must be between 0 and 5",
       });
     }
 
@@ -1020,6 +1072,90 @@ export const getUserTravelPlans = async (req, res) => {
     res.status(500).json({
       status: "error",
       message: "Failed to get user travel plans",
+      error: error.message,
+    });
+  }
+};
+
+// Get user's bookmarked travel plans
+export const getUserBookmarks = async (req, res) => {
+  try {
+    // ตรวจสอบว่ามี session และมีข้อมูลผู้ใช้หรือไม่
+    if (!req.session || !req.session.user || !req.session.user.id) {
+      return res.status(401).json({
+        status: "error",
+        message: "Not authenticated. Please log in.",
+      });
+    }
+
+    const userId = req.session.user.id;
+
+    // ดึงข้อมูล travel plans ที่ผู้ใช้ได้ bookmark ไว้
+    const bookmarkedPlans = await prisma.travelPlanBookmark.findMany({
+      where: {
+        userId: userId
+      },
+      include: {
+        travelPlan: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+              },
+            },
+            likedByUsers: {
+              select: {
+                userId: true,
+              },
+            },
+            destinations: {
+              select: {
+                id: true,
+                photoUrl: true,
+              },
+              take: 1, // เอาแค่ destination แรก
+            },
+          },
+        },
+      },
+    });
+
+    // แปลงข้อมูลให้อยู่ในรูปแบบเดียวกับ getUserTravelPlans
+    const formattedBookmarks = bookmarkedPlans.map(bookmark => {
+      const plan = bookmark.travelPlan;
+      
+      // ดึงรูปภาพจาก destination แรก (ถ้ามี)
+      let photoUrl = null;
+      if (plan.destinations && plan.destinations.length > 0 && plan.destinations[0].photoUrl) {
+        photoUrl = plan.destinations[0].photoUrl;
+      }
+      
+      return {
+        id: plan.id,
+        title: plan.title,
+        cityTitle: plan.cityTitle,
+        startDate: plan.startDate,
+        endDate: plan.endDate,
+        visibility: plan.visibility,
+        totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
+        photoUrl: photoUrl, // เพิ่ม photoUrl
+        user: {
+          id: plan.user.id,
+          username: plan.user.username,
+        },
+      };
+    });
+    
+    res.status(200).json({
+      status: "success",
+      data: formattedBookmarks,
+    });
+  } catch (error) {
+    console.error("Error getting user bookmarks:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to get user bookmarks",
       error: error.message,
     });
   }

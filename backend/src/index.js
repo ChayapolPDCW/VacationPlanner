@@ -27,10 +27,11 @@ app.use(express.json());
 // TODO: Set frontend domain name in .env, not here
 app.use(
   cors({
-    origin: "http://localhost:3000", //domain ของ frontend
+    origin: ["http://localhost:3000"], //domain ของ frontend
+    // origin: ["http://frontend:3000"], //domain ของ frontend
     credentials: true,
-  })
-);
+  },
+));
 
 // Authentication -- we store user sessions on the backend server,
 // within the Redis database -- see ./middlewares/session.js

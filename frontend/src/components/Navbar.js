@@ -1,31 +1,43 @@
 'use client';
- import { useState, useEffect } from 'react';
+import { useContext, useState, useEffect } from 'react';
+import { useUser } from "@/context/UserContext";
 
 export default function Navbar() {
+    const { user, setUser } = useUser();
     const [username, setUsername] = useState(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const token = window.localStorage.getItem('token');
-            if (token) {
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    setUsername(payload.username);
-                } catch (error) {
-                    console.error("Error decoding token:", error);
-                }
-            }
-        }
-    }, []);
+        setUsername(user ? user.username : null);
+
+        // if (typeof window !== 'undefined') {
+        //     const token = window.localStorage.getItem('token');
+        //     if (token) {
+        //         try {
+        //             const payload = JSON.parse(atob(token.split('.')[1]));
+        //             setUsername(payload.username);
+        //         } catch (error) {
+        //             console.error("Error decoding token:", error);
+        //         }
+        //     }
+        // }
+    }, [user]);
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        setUser(null);
+
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            // withCredentials: true,
+            credentials: "include",
+        });
+
         if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
+            // localStorage.removeItem('token');
             window.location.href = '/';
         }
     };

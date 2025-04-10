@@ -63,7 +63,7 @@ const main = async () => {
         }),
         rating: ({ seed }) => copycat.int(seed, {
             min: 0,
-            max: 10
+            max: 5
         }),
     }));
 

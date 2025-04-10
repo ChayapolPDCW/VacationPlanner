@@ -11,6 +11,7 @@ import {
   updateTravelPlan,
   deleteTravelPlan,
   getUserTravelPlans,
+  getUserBookmarks,
 } from "../controllers/travelPlanController.js";
 import {
   createDestination,
@@ -25,7 +26,13 @@ const router = Router();
 
 // ===== Handlers =====
 router.get("/", getAllTravelPlans);
+
+router.get("/:id", getTravelPlanById);
+// 
 router.get("/user", isAuthenticated, getUserTravelPlans);
+
+router.get("/bookmarks", isAuthenticated, getUserBookmarks);
+
 router.get("/:id", isAuthenticated, getTravelPlanById);
 
 router.post("/", createTravelPlan);

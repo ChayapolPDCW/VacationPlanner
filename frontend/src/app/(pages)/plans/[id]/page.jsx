@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback, useContext } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -10,6 +9,7 @@ import { format, differenceInDays, eachDayOfInterval } from "date-fns";
 import { GoogleMap, Marker, DirectionsRenderer } from "@react-google-maps/api";
 import { FiHeart, FiBookmark, FiHelpCircle } from "react-icons/fi";
 import { MapContext } from "@/app/ClientLayout";
+import axios from "axios";
 
 // Dynamically import MapComponent (if needed, but we'll use GoogleMap directly)
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
@@ -153,6 +153,7 @@ const mockJournals = [
   // Plan 2 has no journal
 ];
 
+
 // Mock current user (simulating authentication)
 const mockCurrentUser = { id: 1, username: "user1" }; // Change this to test different users
 
@@ -163,6 +164,7 @@ export default function PlanDetail() {
 
   const { isMapLoaded, mapError } = useContext(MapContext);
 
+  const [selectedPlan, setSelectedPlan] = useState(null);
   const [plan, setPlan] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [hasJournal, setHasJournal] = useState(false);
@@ -182,26 +184,48 @@ export default function PlanDetail() {
     "#FFFF00",
   ];
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // useEffect(() => {
+  //   setIsClient(true);
+  // }, []);
 
   useEffect(() => {
     // Simulate fetching the plan
-    const selectedPlan = mockPlans.find((p) => p.id === planId);
-    if (!selectedPlan || selectedPlan.visibility !== "PUBLIC") {
-      notFound();
+    // const selectedPlan = d;
+
+    // if (!selectedPlan || selectedPlan.visibility !== "PUBLIC") {
+    //   notFound();
+    // }
+    const fetchPlanData = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/plans/${planId}`);
+    
+        // response.data;
+        console.log("selectedPlan: ", response.data.data);
+        return response.data.data;
+      } catch (error) {
+        console.error(error.message)
+        setError("Error getting plan information");
+      }
     }
+
+    let selectedPlan = fetchPlanData();
+    
+    if (selectedPlan) {
+      setSelectedPlan(selectedPlan);
+    }
+
+    console.log(selectedPlan);
 
     setPlan(selectedPlan);
     setTotalLikes(selectedPlan.total_like);
 
     // Check if the current user is the owner
-    const owner = mockCurrentUser && selectedPlan.user.id === mockCurrentUser.id;
+    // const owner = mockCurrentUser && selectedPlan.user.id === mockCurrentUser.id;
+
     setIsOwner(owner);
 
     // Check if the plan has a journal
-    const journalExists = mockJournals.some((j) => j.planId === planId);
+    // const journalExists = mockJournals.some((j) => j.planId === planId);
     setHasJournal(journalExists);
 
     // Initialize directions

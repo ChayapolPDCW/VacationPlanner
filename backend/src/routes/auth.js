@@ -16,9 +16,18 @@ router.post("/login", login);
 
 router.post("/logout", isAuthenticated, logout);
 
-router.post("/check", isAuthenticated, (req, res) => {
+router.post("/check", (req, res, next) => {
+  if (!req.session.user) {
+    res.status(200).json({
+      status: false,
+      message: "Not Authenticated"
+    });
+
+    return;
+  }
+
   res.status(200).json({
-    status: "success",
+    status: true,
     message: "Authenticated",
   });
 });

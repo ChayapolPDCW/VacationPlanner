@@ -54,7 +54,6 @@ services:
     restart: always
     env_file:
       - ./backend/.env.container
-      - ./backend/.env.container
     ports:
       - "${DATABASE_PORT}:${DATABASE_PORT:?error}"
     volumes:
@@ -75,6 +74,8 @@ services:
     restart: always
     ports:
       - "${REDIS_PORT}:${REDIS_PORT:?error}"
+    env_file:
+      - ./backend/.env.container
     volumes:
       - redis-data:/data
     networks:

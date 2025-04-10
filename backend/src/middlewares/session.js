@@ -8,7 +8,7 @@ import { RedisStore } from "connect-redis";
 
 // Create the client we will use to communicate with the database
 let redisClient = createClient({
-  url: "redis://redis:6379",
+  url: `redis://${process.env.REDIS_HOST_NAME}:${process.env.REDIS_PORT}`,
 });
 
 // Try to connect to the database

@@ -5,16 +5,21 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { FaPencilAlt } from "react-icons/fa";
 
+import Loading from "@/app/feed/loading";
+import Avatar from "@/components/Avatar";
+
+import { useUser } from "@/context/UserContext";
+
 // Mock data for user and plans (no journals needed since we're not displaying them)
-const mockUser = {
-  id: 1,
-  username: "SamanthaJones",
-  email: "samantha.jones@example.com",
-  password: "hashedpassword123",
-  avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-  created_at: "2023-01-15T10:00:00Z",
-  updated_at: "2024-04-07T14:30:00Z",
-};
+// const mockUser = {
+//   id: 1,
+//   username: "SamanthaJones",
+//   email: "samantha.jones@example.com",
+//   // password: "hashedpassword123",
+//   avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
+//   createdAt: "2023-01-15T10:00:00Z",
+//   updatedAt: "2024-04-07T14:30:00Z",
+// };
 
 const mockPlans = [
   {
@@ -61,34 +66,55 @@ const mockJournals = [
 ];
 
 export default function ProfilePage() {
+  const { user } = useUser();
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const [plans, setPlans] = useState([]);
   const [journals, setJournals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching data (replace with API calls later)
-    setUser(mockUser);
-    setPlans(mockPlans);
-    setJournals(mockJournals);
-    setIsLoading(false);
-  }, []);
+    try {
+      // Simulate fetching data (replace with API calls later)
+      setCurrentUser(user);
+
+      console.log("LLL", `http://localhost:5000/api/plans?author_id=${user.id}`);
+
+      // const getMyPlans = async () => {
+      //   const response = await fetch(`http://localhost:5000/api/plans?author_id=${user.id}`, {
+      //     withCredentials: true
+      //   });
+        
+      //   const responseJson = response.json();
+      //   console.log("my plans: ", responseJson.data);
+      //   setPlans(responseJson.data);
+      // };
+
+      // getMyPlans();
+
+      setPlans(mockPlans);
+      setJournals(mockJournals);
+      setIsLoading(false);
+    } catch (e) {
+      console.error(e.message);
+    }
+  }, [user]);
 
   // Calculate total likes from plans
   const totalLikes = plans.reduce((sum, plan) => sum + (plan.likes || 0), 0);
 
   // Handle loading
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
-      </div>
-    );
+    <Loading />
+    // return (
+    //   <div className="flex h-screen items-center justify-center">
+    //     <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
+    //   </div>
+    // );
   }
 
   // Handle user data is not available
-  if (!user) {
+  if (!currentUser) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-2xl text-red-600">User data not found</div>
@@ -115,17 +141,13 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg shadow-md -mt-12 mx-4 p-6 relative">
           {/* Profile Picture */}
           <div className="flex justify-center -mt-16">
-            <img
-              src={user.avatar || "/images/default-avatar.png"}
-              alt={`${user.username}'s avatar`}
-              className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover"
-            />
+            <Avatar src={`http://localhost:5000/uploads${currentUser.avatarUrl}` || "/images/default-avatar.png"} alt={`${currentUser.username}'s avatar`} className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
           </div>
 
           {/* User Info */}
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-800 text-center">{user.username}</h1>
-            <p className="text-gray-600 text-center">{user.email}</p>
+            <h1 className="text-2xl font-bold text-gray-800 text-center">{currentUser.username}</h1>
+            <p className="text-gray-600 text-center">{currentUser.email}</p>
 
           </div>
 
@@ -152,11 +174,11 @@ export default function ProfilePage() {
             <div className="text-sm text-gray-600 space-y-2 text-left">
               <p>
                 <span className="font-medium">Joined: </span>
-                {format(new Date(user.created_at), "d MMMM yyyy")}
+                {format(new Date(currentUser.createdAt), "d MMMM yyyy")}
               </p>
               <p>
                 <span className="font-medium">Last Edited: </span>
-                {format(new Date(user.updated_at), "d MMMM yyyy, h:mm a")}
+                {format(new Date(currentUser.updatedAt), "d MMMM yyyy, h:mm a")}
               </p>
             </div>
 

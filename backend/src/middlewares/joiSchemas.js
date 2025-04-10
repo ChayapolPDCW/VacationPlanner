@@ -32,14 +32,14 @@ export const createJournalSchema = Joi.object({
   title: Joi.string().min(3).max(255).required(),
   notes: Joi.string().required(),
   mood: Joi.string().max(50).required(),
-  rating: Joi.number().min(0).max(10).required()
+  rating: Joi.number().min(0).max(5).required()
 });
 
 export const updateJournalSchema = Joi.object({
   title: Joi.string().min(3).max(255),
   notes: Joi.string(),
   mood: Joi.string().max(50),
-  rating: Joi.number().min(0).max(10)
+  rating: Joi.number().min(0).max(5)
 }).min(1);
 
 // User Schemas

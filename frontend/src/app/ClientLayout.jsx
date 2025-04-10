@@ -47,5 +47,5 @@ export default function ClientLayout({ children }) {
         </MapContext.Provider>
       )}
     </LoadScript>
-  );
+    );
 }

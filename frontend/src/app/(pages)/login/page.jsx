@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
+import { useUser } from "@/context/UserContext";
+
 export default function LoginPage() {
+    const { user, setUser } = useUser();
+
+    useEffect(() => {
+        console.log("ress: ", user);
+    }, [user]);
+
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -48,6 +56,15 @@ export default function LoginPage() {
             // const { token } = response.data.data;
             // localStorage.setItem("token", token);
             // console.log("Login successful, token stored:", token);
+
+            console.log("response: ", response.data);
+
+            if (response.data.status != "success") {
+                setError("Incorrect email or password");
+                return;
+            }
+
+            setUser(response.data.data);
             router.push("/home");
         } catch (err) {
             console.error("Error logging in:", err.response?.data);
