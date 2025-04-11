@@ -315,15 +315,12 @@ export default function CreatePlanPage() {
         })),
       };
 
-      const response = await axios.post(
-        "http://localhost:5000/api/plans",
-        planData,
-        {
+      const response = await axios.post("/api/plans", planData, {
           headers: {
             "Content-Type": "application/json",
           },
           withCredentials: true,
-        }
+        },
       );
       console.log("Plan created:", response.data);
       toast.success("Travel plan created successfully!");

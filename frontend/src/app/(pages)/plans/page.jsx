@@ -23,7 +23,7 @@ export default function PlansPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/plans?author_id=${user.id}`, {
+        const response = await fetch(`/api/plans/user`, {
           withCredentials: true,
         });
 

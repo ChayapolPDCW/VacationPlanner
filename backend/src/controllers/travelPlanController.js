@@ -62,8 +62,7 @@ export const createTravelPlan = async (req, res) => {
       !notes ||
       !startDate ||
       !endDate ||
-      !visibility ||
-      !itinerary
+      !visibility
     ) {
       return res.status(400).json({
         status: "error",
@@ -182,6 +181,11 @@ export const getAllTravelPlans = async (req, res) => {
             userId: true,
           },
         },
+        bookmarkedByUsers: {
+          select: {
+            userId: true,
+          },
+        },
         destinations: {
           select: {
             id: true,
@@ -215,6 +219,7 @@ export const getAllTravelPlans = async (req, res) => {
         visibility: plan.visibility,
         totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
         likedByUsers: plan.likedByUsers,
+        bookmarkedByUsers: plan.bookmarkedByUsers,
         photoUrl: photoUrl, // เพิ่ม photoUrl
         user: {
           id: plan.user.id,
@@ -254,6 +259,11 @@ export const getTravelPlanById = async (req, res) => {
           },
         },
         likedByUsers: {
+          select: {
+            userId: true,
+          },
+        },
+        bookmarkedByUsers: {
           select: {
             userId: true,
           },
@@ -322,6 +332,7 @@ export const getTravelPlanById = async (req, res) => {
       itinerary: itinerary,
       totalLike: travelPlan.likedByUsers.length, // นับจำนวนไลค์
       likedByUsers: travelPlan.likedByUsers,
+      bookmarkedByUsers: plan.bookmarkedByUsers,
       photoUrl: photoUrl, // เพิ่ม photoUrl
       user: {
         id: travelPlan.user.id,
@@ -1142,6 +1153,11 @@ export const getUserTravelPlans = async (req, res) => {
             userId: true,
           },
         },
+        bookmarkedByUsers: {
+          select: {
+            userId: true,
+          },
+        },
         destinations: {
           select: {
             id: true,
@@ -1174,6 +1190,7 @@ export const getUserTravelPlans = async (req, res) => {
         visibility: plan.visibility,
         totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
         likedByUsers: plan.likedByUsers,
+        bookmarkedByUsers: plan.bookmarkedByUsers,
         photoUrl: photoUrl, // เพิ่ม photoUrl
         user: {
           id: plan.user.id,
@@ -1238,6 +1255,11 @@ export const getUserBookmarks = async (req, res) => {
                 userId: true,
               },
             },
+            bookmarkedByUsers: {
+              select: {
+                userId: true,
+              },
+            },
             destinations: {
               select: {
                 id: true,
@@ -1254,7 +1276,7 @@ export const getUserBookmarks = async (req, res) => {
       (bookmark) => bookmark.travelPlan
     );
 
-    console.log("likes: ", bookmarkedTravelPlans[2].likedByUsers);
+    // console.log("likes: ", bookmarkedTravelPlans[2].likedByUsers);
 
     const formattedBookmarkedTravelPlans = bookmarkedTravelPlans.map((plan) => {
       // ดึงรูปภาพจาก destination แรก (ถ้ามี)
@@ -1306,6 +1328,11 @@ export const getUserBookmarks = async (req, res) => {
     //           },
     //         },
     //         likedByUsers: {
+    //           select: {
+    //             userId: true,
+    //           },
+    //         },
+    //         bookmarkedByUsers: {
     //           select: {
     //             userId: true,
     //           },

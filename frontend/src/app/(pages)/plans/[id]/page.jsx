@@ -225,8 +225,12 @@ export default function PlanDetail() {
     if (plan) {
       setPlan(plan);
 
-      if (plan.likedByUsers.includes(user.id)) {
+      if (plan.likedByUsers && plan.likedByUsers.includes(user.id)) {
         setLiked(true);
+      }
+
+      if (plan.bookmarkedByUsers && plan.bookmarkedByUsers.includes(user.id)) {
+        setBookmarked(true);
       }
 
       setTotalLikes(plan.totalLike);
@@ -311,8 +315,23 @@ export default function PlanDetail() {
     }
   };
 
-  const handleBookmark = () => {
-    setBookmarked((prev) => !prev);
+  const handleBookmark = async () => {
+    // setBookmarked((prev) => !prev);
+    try {
+      if (bookmarked) {
+        // If already liked, send a DELETE request to remove the like
+        await axios.delete(`/api/bookmark/${plan.id}`, { withCredentials: true });
+        setBookmarked(false);
+      } else {
+        // If not liked, send a POST request to add the like
+        await axios.post(`/api/bookmark/${plan.id}`, {
+          withCredentials: true,
+        });
+        setBookmarked(true);
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error.message);
+    }
   };
 
   if (!plan) {

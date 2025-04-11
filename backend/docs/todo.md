@@ -36,6 +36,8 @@ Users/Chaya/Desktop/PROJECT/VacationPlanner
     - [X] Edit profile
     - [X] My plan
     - [X] My bookmark
+    - [X] My plan
+    - [X] My bookmark
     - [X] hamberger drop down ถ้ายังไม่ Login จะมี Login, Register ถ้า Login เเล้วจะมี My profile, Logout เเละเเสดง username ของคนที่ Login ข้างๆ บน Navbar
     - [ ] การ Like เเละ bookmark ทดสอบการ Like เเละ Bookmark เพิ่มจํานวนทันทีในหน้า client เเละในขณะเดียวกันเพิ่มใน db
 

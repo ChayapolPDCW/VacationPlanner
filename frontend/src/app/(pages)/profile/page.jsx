@@ -163,7 +163,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-lg font-semibold text-gray-800">{plans.length}</p>
-                <p className="text-sm text-gray-600">Plans Created</p>
+                <p className="text-sm text-gray-600">Public Plans Created</p>
               </div>
               <div>
                 <p className="text-lg font-semibold text-gray-800">{totalLikes}</p>

@@ -20,28 +20,28 @@ export default function CommunityPage() {
           withCredentials: true,
         });
         const plansData = response.data.data;
-        
+
         console.log("plans: ", plansData);
-        
+
         if (plansData && Array.isArray(plansData)) {
           const formattedPlans = plansData.map((plan, index) => {
             return {
               id: index + 1,
-              plan_id: plan.id,
+              planId: plan.id,
               title: plan.title,
               startDate: plan.startDate,
               endDate: plan.endDate,
               totalLike: plan.totalLike,
-              photo_url: plan.photoUrl,
+              photoUrl: plan.photoUrl,
               user: {
-                username: plan.user?.username || "Unknown"
-              }
+                username: plan.user?.username || "Unknown",
+              },
             };
           });
-          
+
           // เรียงลำดับตามจำนวนไลค์จากมากไปน้อย
           formattedPlans.sort((a, b) => b.totalLike - a.totalLike);
-          
+
           setPlans(formattedPlans);
         }
       } catch (error) {
@@ -60,8 +60,10 @@ export default function CommunityPage() {
       prevPlans.map((plan) => {
         if (plan.id === planId) {
           const isLiked = likedPlans.has(planId);
-          const newTotalLike = isLiked ? plan.total_like - 1 : plan.total_like + 1;
-          return { ...plan, total_like: newTotalLike };
+          const newTotalLike = isLiked
+            ? plan.totalLike - 1
+            : plan.totalLike + 1;
+          return { ...plan, totalLike: newTotalLike };
         }
         return plan;
       })
@@ -98,7 +100,8 @@ export default function CommunityPage() {
         <h2 className="text-2xl font-bold mb-2">Community</h2>
 
         <p className="mb-6 italic text-gray-500">
-          Explore travel plans shared by the community. Get inspired, save your favorites, or share your own!
+          Explore travel plans shared by the community. Get inspired, save your
+          favorites, or share your own!
         </p>
 
         {loading ? (
@@ -112,7 +115,7 @@ export default function CommunityPage() {
             {plans.map((plan) => (
               <div key={plan.id} className="relative">
                 {/* Plan Card */}
-                <PlanCard plan={plan} />
+                <PlanCard key={plan.id} plan={plan} />
 
                 {/* Like and Bookmark Buttons */}
                 <div className="flex mt-2">
@@ -128,7 +131,9 @@ export default function CommunityPage() {
                     }`}
                   >
                     <FiHeart
-                      className={`text-lg ${likedPlans.has(plan.id) ? "fill-current" : ""}`}
+                      className={`text-lg ${
+                        likedPlans.has(plan.id) ? "fill-current" : ""
+                      }`}
                     />
                   </button>
 
@@ -144,7 +149,9 @@ export default function CommunityPage() {
                     }`}
                   >
                     <FiBookmark
-                      className={`text-lg ${bookmarkedPlans.has(plan.id) ? "fill-current" : ""}`}
+                      className={`text-lg ${
+                        bookmarkedPlans.has(plan.id) ? "fill-current" : ""
+                      }`}
                     />
                   </button>
                 </div>
