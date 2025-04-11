@@ -8,8 +8,8 @@ import {
 const router = Router();
 
 // ===== Handlers =====
-router.post("/:id/", createBookmark);
+router.post("/:id", createBookmark);
 
-router.delete("/:id/", deleteBookmark);
+router.delete("/:id", deleteBookmark);
 
 export default router;

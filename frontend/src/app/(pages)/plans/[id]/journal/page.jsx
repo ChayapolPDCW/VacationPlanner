@@ -5,196 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { format, differenceInDays } from "date-fns";
 import { FaStar, FaArrowLeft } from "react-icons/fa";
 import { FiHelpCircle } from "react-icons/fi";
-
-// Mock data
-const mockPlans = [
-  {
-    id: 1,
-    authorId: 1,
-    title: "Summer in Bali",
-    cityTitle: "Bali, Indonesia",
-    notes: "A relaxing summer getaway in Bali",
-    startDate: "2024-11-17T00:00:00.000Z",
-    endDate: "2024-11-23T00:00:00.000Z",
-    visibility: "PUBLIC",
-    createdAt: "2024-10-01T00:00:00.000Z",
-    updatedAt: "2024-10-02T00:00:00.000Z",
-    user: { username: "user1" },
-    destinations: [
-      {
-        id: 1,
-        travelPlanId: 1,
-        title: "Kuta Beach",
-        latitude: -8.7186,
-        longitude: 115.1686,
-        photoUrl: "/images/kuta.jpeg",
-        googlePlaceId: "ChIJk9x8zX1z0i0R7g",
-        startDate: "2024-11-17T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 2,
-        travelPlanId: 1,
-        title: "Seminyak Beach",
-        latitude: -8.6894,
-        longitude: 115.1622,
-        photoUrl: "/images/seminyak.jpeg",
-        googlePlaceId: "ChIJk9x8zX2z0i0R7h",
-        startDate: "2024-11-17T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 3,
-        travelPlanId: 1,
-        title: "Uluwatu Temple",
-        latitude: -8.8291,
-        longitude: 115.0849,
-        photoUrl: "/images/Uluwatu Temple.jpeg",
-        googlePlaceId: "ChIJk9x8zX3z0i0R7i",
-        startDate: "2024-11-18T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 4,
-        travelPlanId: 1,
-        title: "Jimbaran Beach",
-        latitude: -8.7747,
-        longitude: 115.1658,
-        photoUrl: "/images/Jimbaran Beach.jpeg",
-        googlePlaceId: "ChIJk9x8zX4z0i0R7j",
-        startDate: "2024-11-18T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 5,
-        travelPlanId: 1,
-        title: "Ubud Monkey Forest",
-        latitude: -8.5193,
-        longitude: 115.2603,
-        photoUrl: "/images/Ubud Monkey Forest.jpeg",
-        googlePlaceId: "ChIJk9x8zX5z0i0R7k",
-        startDate: "2024-11-19T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-    ],
-    journal: {
-      id: 1,
-      travel_plan_id: 1,
-      rating: 4,
-      notes: "An amazing trip to Bali! The beaches were stunning, and the culture was so rich.",
-      fav_notes: "Watching the sunset at Kuta Beach was unforgettable.",
-      future_tip: "Bring sunscreen and stay hydrated!",
-      createdAt: "2024-11-24T00:00:00.000Z",
-      updatedAt: "2024-11-24T00:00:00.000Z",
-    },
-    attachments: [
-      {
-        travel_plan_destination_id: 1, // Kuta Beach
-        url: "/images/kuta-moment.jpeg",
-        order: 1,
-        createdAt: "2024-11-24T00:00:00.000Z",
-        updatedAt: "2024-11-24T00:00:00.000Z",
-      },
-      {
-        travel_plan_destination_id: 3, // Uluwatu Temple
-        url: "/images/uluwatu-moment.jpeg",
-        order: 1,
-        createdAt: "2024-11-24T00:00:00.000Z",
-        updatedAt: "2024-11-24T00:00:00.000Z",
-      },
-    ],
-  },
-  {
-    id: 2,
-    authorId: 2,
-    title: "Winter in Paris",
-    cityTitle: "Paris, France",
-    notes: "A magical winter trip to Paris",
-    startDate: "2024-08-03T00:00:00.000Z",
-    endDate: "2024-08-08T00:00:00.000Z",
-    visibility: "PRIVATE",
-    createdAt: "2024-07-01T00:00:00.000Z",
-    updatedAt: "2024-07-02T00:00:00.000Z",
-    user: { username: "user2" },
-    destinations: [
-      {
-        id: 6,
-        travelPlanId: 2,
-        title: "Eiffel Tower",
-        latitude: 48.8584,
-        longitude: 2.2945,
-        photoUrl: "/images/eiffel.jpeg",
-        googlePlaceId: "ChIJk9x8zX6z0i0R7l",
-        startDate: "2024-08-03T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-      {
-        id: 7,
-        travelPlanId: 2,
-        title: "Champ-Élysées",
-        latitude: 48.8698,
-        longitude: 2.3077,
-        photoUrl: "/images/champs-elysees.jpeg",
-        googlePlaceId: "ChIJk9x8zX7z0i0R7m",
-        startDate: "2024-08-03T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-      {
-        id: 8,
-        travelPlanId: 2,
-        title: "Louvre Museum",
-        latitude: 48.8606,
-        longitude: 2.3376,
-        photoUrl: "/images/louvre.jpeg",
-        googlePlaceId: "ChIJk9x8zX8z0i0R7n",
-        startDate: "2024-08-04T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-    ],
-    journal: {
-      id: 2,
-      travel_plan_id: 2,
-      rating: 5,
-      notes: "Paris in winter was magical! The lights and atmosphere were incredible.",
-      fav_notes: "Seeing the Eiffel Tower lit up at night was the highlight.",
-      future_tip: "Dress warmly and book museum tickets in advance.",
-      createdAt: "2024-08-09T00:00:00.000Z",
-      updatedAt: "2024-08-09T00:00:00.000Z",
-    },
-    attachments: [
-      {
-        travel_plan_destination_id: 6, // Eiffel Tower
-        url: "/images/eiffel-moment.jpeg",
-        order: 1,
-        createdAt: "2024-08-09T00:00:00.000Z",
-        updatedAt: "2024-08-09T00:00:00.000Z",
-      },
-      {
-        travel_plan_destination_id: 8, // Louvre Museum
-        url: "/images/louvre-moment.jpeg",
-        order: 1,
-        createdAt: "2024-08-09T00:00:00.000Z",
-        updatedAt: "2024-08-09T00:00:00.000Z",
-      },
-    ],
-  },
-];
+import axios from "axios";
 
 export default function JournalDetailPage() {
   const router = useRouter();
@@ -207,29 +18,117 @@ export default function JournalDetailPage() {
   const [selectedPhoto, setSelectedPhoto] = useState(null); // State to track the enlarged photo
 
   useEffect(() => {
-    // Fetch plan, journal, and attachments from mock data
-    const selectedPlan = mockPlans.find((plan) => plan.id === parseInt(id));
-    if (selectedPlan) {
-      if (selectedPlan.journal) {
-        setPlan(selectedPlan);
-        setJournal(selectedPlan.journal);
-        setAttachments(selectedPlan.attachments || []);
-        setLoading(false);
-      } else {
-        setError("Journal not found for this plan.");
+    const fetchJournalData = async () => {
+      try {
+        setLoading(true);
+        
+        // First, fetch the travel plan data
+        const planResponse = await axios.get(`/api/plans/${id}`, {
+          withCredentials: true,
+        });
+        
+        if (planResponse.data.status === "success") {
+          const selectedPlan = planResponse.data.data;
+          console.log("Plan data:", selectedPlan);
+          
+          // Process destinations from itinerary
+          let allDestinations = [];
+          if (selectedPlan && selectedPlan.itinerary && Array.isArray(selectedPlan.itinerary)) {
+            selectedPlan.itinerary.forEach(day => {
+              if (day.places && Array.isArray(day.places)) {
+                allDestinations = [...allDestinations, ...day.places];
+              }
+            });
+            
+            // Add destinations property to plan for easier access
+            selectedPlan.destinations = allDestinations;
+          }
+          
+          setPlan(selectedPlan);
+          
+          // Now try to find the journal for this travel plan
+          try {
+            // Get all journals
+            const journalsResponse = await axios.get(`/api/journals`, {
+              withCredentials: true,
+            });
+            
+            if (journalsResponse.data.status === "success" && journalsResponse.data.data) {
+              const allJournals = journalsResponse.data.data;
+              console.log("All journals:", allJournals);
+              
+              // Look for a journal that might be for this travel plan
+              // We're matching based on title and start date since there's no direct travelPlanId in the response
+              const possibleJournal = allJournals.find(journal => 
+                journal.title === selectedPlan.title && 
+                journal.startDate === selectedPlan.startDate
+              );
+              
+              if (possibleJournal) {
+                console.log("Found possible journal for this plan:", possibleJournal);
+                
+                // Now fetch the detailed journal data
+                try {
+                  const journalDetailResponse = await axios.get(`/api/journals/${possibleJournal.id}`, {
+                    withCredentials: true,
+                  });
+                  
+                  if (journalDetailResponse.data.status === "success" && journalDetailResponse.data.data) {
+                    console.log("Journal detail data:", journalDetailResponse.data.data);
+                    
+                    // Combine the journal detail data with the basic journal data
+                    const fullJournalData = {
+                      ...journalDetailResponse.data.data,
+                      title: possibleJournal.title,
+                      cityTitle: possibleJournal.cityTitle,
+                      username: possibleJournal.username,
+                      createdAt: possibleJournal.createdAt
+                    };
+                    
+                    setJournal(fullJournalData);
+                    setLoading(false);
+                  } else {
+                    setError("Could not fetch journal details.");
+                    setLoading(false);
+                  }
+                } catch (detailError) {
+                  console.error("Error fetching journal details:", detailError);
+                  setError("Error loading journal details. Please try again later.");
+                  setLoading(false);
+                }
+              } else {
+                // No journal found for this plan
+                setError("No journal exists for this plan yet. Create one to get started!");
+                setLoading(false);
+              }
+            } else {
+              setError("Failed to fetch journals.");
+              setLoading(false);
+            }
+          } catch (journalsError) {
+            console.error("Error fetching journals:", journalsError);
+            setError("Error loading journals. Please try again later.");
+            setLoading(false);
+          }
+        } else {
+          setError("Plan not found.");
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Error fetching plan data:", err);
+        setError(err.response?.data?.message || "Error fetching plan data");
         setLoading(false);
       }
-    } else {
-      setError("Plan not found.");
-      setLoading(false);
-    }
+    };
+    
+    fetchJournalData();
   }, [id]);
 
   // Calculate the number of days in the trip (inclusive of start and end dates)
   const numberOfDays = plan ? differenceInDays(new Date(plan.endDate), new Date(plan.startDate)) + 1 : 0;
 
   // Group destinations by startDate
-  const groupedDestinations = plan
+  const groupedDestinations = plan && plan.destinations
     ? plan.destinations.reduce((acc, dest) => {
         const dateKey = format(new Date(dest.startDate), "yyyy-MM-dd");
         if (!acc[dateKey]) {
@@ -265,16 +164,54 @@ export default function JournalDetailPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto p-6 text-red-600 bg-gradient-to-br from-indigo-100 to-purple-100 min-h-screen">
-        {error}
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 py-10">
+        <div className="container mx-auto p-6 text-center">
+          <div className="bg-white rounded-xl shadow-lg p-8 border border-indigo-200 max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold text-indigo-500 mb-4">Journal Not Found</h1>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => router.push(`/plans/${id}/journal/create`)}
+                className="px-6 py-3 bg-indigo-500 text-white rounded-full cursor-pointer shadow-md transition-transform duration-200 transform hover:scale-105 active:scale-100"
+              >
+                Create Journal
+              </button>
+              <button
+                onClick={() => router.push(`/plans/${id}`)}
+                className="px-6 py-3 bg-white text-indigo-600 rounded-full cursor-pointer border border-indigo-400 shadow-md transition-transform duration-200 transform hover:scale-105 active:scale-100"
+              >
+                Back to Plan
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!plan || !journal) {
     return (
-      <div className="container mx-auto p-6 text-red-600 bg-gradient-to-br from-indigo-100 to-purple-100 min-h-screen">
-        Journal not found.
+      <div className="min-h-screen bg-gradient-to-br from-indigo-100 to-purple-100 py-10">
+        <div className="container mx-auto p-6 text-center">
+          <div className="bg-white rounded-xl shadow-lg p-8 border border-indigo-200 max-w-2xl mx-auto">
+            <h1 className="text-3xl font-bold text-indigo-500 mb-4">No Journal Yet</h1>
+            <p className="text-gray-600 mb-6">You haven't created a journal for this trip yet.</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => router.push(`/plans/${id}/journal/create`)}
+                className="px-6 py-3 bg-indigo-500 text-white rounded-full cursor-pointer shadow-md transition-transform duration-200 transform hover:scale-105 active:scale-100"
+              >
+                Create Journal
+              </button>
+              <button
+                onClick={() => router.push(`/plans/${id}`)}
+                className="px-6 py-3 bg-white text-indigo-600 rounded-full cursor-pointer border border-indigo-400 shadow-md transition-transform duration-200 transform hover:scale-105 active:scale-100"
+              >
+                Back to Plan
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -298,7 +235,7 @@ export default function JournalDetailPage() {
               {plan.cityTitle} Journal
             </h1>
             <p className="text-gray-600 mt-2 italic">
-              Created by {plan.user.username} on {format(new Date(journal.createdAt), "d MMMM yyyy")}
+              Created on {format(new Date(journal.createdAt), "d MMMM yyyy")}
             </p>
           </div>
         </div>
@@ -329,13 +266,13 @@ export default function JournalDetailPage() {
                     {/* Destinations for the Day */}
                     {group.destinations
                       .sort((a, b) => a.dailyVisitOrder - b.dailyVisitOrder)
-                      .map((dest) => {
+                      .map((dest, destIndex) => {
                         const attachment = attachments.find(
-                          (att) => att.travel_plan_destination_id === dest.id
+                          (att) => att.travelPlanDestinationId === dest.id
                         );
                         return (
                           <div
-                            key={dest.id}
+                            key={dest.id || dest.googlePlaceId || `${groupIndex}-${destIndex}`}
                             className="ml-12 bg-white p-6 rounded-lg shadow-md mb-4 border border-indigo-100"
                           >
                             <div className="flex flex-col space-y-4">
@@ -396,7 +333,7 @@ export default function JournalDetailPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-gray-600">Places Visited</p>
-                  <p className="text-lg font-medium text-indigo-500">{plan.destinations.length}</p>
+                  <p className="text-lg font-medium text-indigo-500">{plan.destinations?.length || 0}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-gray-600">Rating</p>
@@ -426,7 +363,7 @@ export default function JournalDetailPage() {
             <div className="bg-white rounded-xl shadow-lg p-6 border border-indigo-200">
               <h2 className="text-2xl font-semibold text-indigo-500 mb-4">Favorite Moment</h2>
               <p className="text-gray-700 bg-indigo-50 p-4 rounded-lg  min-h-[100px]">
-                {journal.fav_notes || "No favorite moment recorded."}
+                {journal.favNotes || "No favorite moment recorded."}
               </p>
             </div>
 
@@ -434,7 +371,7 @@ export default function JournalDetailPage() {
             <div className="bg-white rounded-xl shadow-lg p-6 border border-indigo-200">
               <h2 className="text-2xl font-semibold text-indigo-500 mb-4">Tips for Next Time</h2>
               <p className="text-gray-700 bg-indigo-50 p-4 rounded-lg  min-h-[100px]">
-                {journal.future_tip || "No tips recorded."}
+                {journal.futureTip || "No tips recorded."}
               </p>
             </div>
 

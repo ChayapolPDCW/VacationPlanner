@@ -40,11 +40,11 @@ export default function PlanCard({ plan }) {
           <h3 className="text-lg font-semibold text-gray-900">{plan.title}</h3>
           <p className="text-gray-600">by {plan.user.username}</p>
           <p className="text-gray-600">
-            {new Date(plan.startDate).toLocaleDateString('en-GB', {
+            {new Date(plan.startDate).toLocaleDateString('en-TH', {
               day: 'numeric',
               month: 'short',
               year: 'numeric',
-            })} - {new Date(plan.endDate).toLocaleDateString('en-GB', {
+            })} - {new Date(plan.endDate).toLocaleDateString('en-TH', {
               day: 'numeric',
               month: 'short',
               year: 'numeric',

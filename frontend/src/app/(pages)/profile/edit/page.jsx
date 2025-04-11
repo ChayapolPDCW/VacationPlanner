@@ -230,7 +230,7 @@ export default function EditProfilePage() {
 
             {/* Password Section */}
             <div className="mt-4">
-              <label className="block text-gray-700 mb-2">Old Password</label>
+              <label className="block text-gray-700 mb-2">Password</label>
               <input
                 type={isPasswordEditable ? "text" : "password"} // Show text when editing
                 name="password"

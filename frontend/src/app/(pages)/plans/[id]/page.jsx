@@ -150,8 +150,8 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
 const mockJournals = [
   {
     id: 1,
-    planId: 1,
-    userId: 1,
+    planId: 112,
+    userId: 153,
   },
   // Plan 2 has no journal
 ];
@@ -207,7 +207,7 @@ export default function PlanDetail() {
 
         const responseJson = await response.json();
         const currentSelectedPlan = responseJson.data;
-        console.log("currentSelectedPlan:", currentSelectedPlan);
+        console.log("currentSelectedPlan:", responseJson);
         setPlan(currentSelectedPlan);
         // setSelectedPlan(currentSelectedPlan);
       } catch (error) {
@@ -217,7 +217,7 @@ export default function PlanDetail() {
     };
     fetchPlanData();
     console.log("selectedPlan: ", plan);
-  }, [planId]);
+  }, []);
 
   useEffect(() => {
     console.log("selectedPlan:: ", plan);
@@ -250,7 +250,7 @@ export default function PlanDetail() {
         updateDirections(plan.itinerary);
       }
     }
-  }, [plan, isMapLoaded, liked]);
+  }, [plan, isMapLoaded]);
 
   const updateDirections = useCallback((itinerary) => {
     if (typeof window === "undefined" || !window.google) return;
@@ -319,18 +319,20 @@ export default function PlanDetail() {
     // setBookmarked((prev) => !prev);
     try {
       if (bookmarked) {
-        // If already liked, send a DELETE request to remove the like
-        await axios.delete(`/api/bookmark/${plan.id}`, { withCredentials: true });
+        // If already bookmarked, send a DELETE request to remove the like
+        await axios.delete(`/api/bookmarks/${plan.id}`, {
+          withCredentials: true,
+        });
         setBookmarked(false);
       } else {
-        // If not liked, send a POST request to add the like
-        await axios.post(`/api/bookmark/${plan.id}`, {
+        // If not bookmarked, send a POST request to add the like
+        await axios.post(`/api/bookmarks/${plan.id}`, {
           withCredentials: true,
         });
         setBookmarked(true);
       }
     } catch (error) {
-      console.error("Error updating like status:", error.message);
+      console.error("Error updating bookmark status:", error.message);
     }
   };
 
@@ -391,10 +393,10 @@ export default function PlanDetail() {
             <div>
               <div className="flex items-center mb-6 space-x-4">
                 <button
-                  onClick={() => router.back()}
+                  onClick={() => router.push(`/plans`)}
                   className="py-2 px-4 rounded-full border shadow-md bg-indigo-500 text-white hover:bg-indigo-600"
                 >
-                  Return
+                  Back to My Plans
                 </button>
                 <h1 className="text-2xl font-bold text-black">Plan Details</h1>
               </div>
@@ -403,6 +405,8 @@ export default function PlanDetail() {
               <h2 className="text-4xl mb-4 font-gealova font-bold italic tracking-wider text-indigo-600">
                 {plan.title}
               </h2>
+
+              <p className="text-gray-500 mb-6 -mt-4 font-medium">by {plan.user.username}</p>
 
               {/* Destination */}
               <div className="bg-white p-6 rounded-lg shadow-md mb-4">
@@ -535,7 +539,7 @@ export default function PlanDetail() {
                   <div className="mt-2">
                     {isOwner
                       ? !hasJournal && (
-                          <Link href={`/plans/${plan.id}/create_journal`}>
+                          <Link href={`/plans/${plan.id}/journal/create`}>
                             <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
                               Journal this Trip
                             </button>

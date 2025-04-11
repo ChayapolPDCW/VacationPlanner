@@ -66,7 +66,7 @@ export const createTravelPlan = async (req, res) => {
     ) {
       return res.status(400).json({
         status: "error",
-        message: "Error creating TravelPlan: Invalid argument",
+        message: "Please fill in all the required fields.",
       });
     }
 
@@ -332,7 +332,7 @@ export const getTravelPlanById = async (req, res) => {
       itinerary: itinerary,
       totalLike: travelPlan.likedByUsers.length, // นับจำนวนไลค์
       likedByUsers: travelPlan.likedByUsers,
-      bookmarkedByUsers: plan.bookmarkedByUsers,
+      bookmarkedByUsers: travelPlan.bookmarkedByUsers,
       photoUrl: photoUrl, // เพิ่ม photoUrl
       user: {
         id: travelPlan.user.id,

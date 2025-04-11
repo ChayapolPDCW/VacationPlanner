@@ -5,144 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { format, differenceInDays } from "date-fns";
 import { FaStar } from "react-icons/fa";
 import { FiHelpCircle } from "react-icons/fi";
-
-// Mock data for plans (aligned with backend schema)
-const mockPlans = [
-  {
-    id: 1,
-    authorId: 1,
-    title: "Summer in Bali",
-    cityTitle: "Bali, Indonesia",
-    notes: "A relaxing summer getaway in Bali",
-    startDate: "2024-11-17T00:00:00.000Z",
-    endDate: "2024-11-23T00:00:00.000Z",
-    visibility: "PUBLIC",
-    createdAt: "2024-10-01T00:00:00.000Z",
-    updatedAt: "2024-10-02T00:00:00.000Z",
-    user: { username: "user1" },
-    destinations: [
-      {
-        id: 1,
-        travelPlanId: 1,
-        title: "Kuta Beach",
-        latitude: -8.7186,
-        longitude: 115.1686,
-        photoUrl: "/images/kuta.jpeg",
-        googlePlaceId: "ChIJk9x8zX1z0i0R7g",
-        startDate: "2024-11-17T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 2,
-        travelPlanId: 1,
-        title: "Seminyak Beach",
-        latitude: -8.6894,
-        longitude: 115.1622,
-        photoUrl: "/images/seminyak.jpeg",
-        googlePlaceId: "ChIJk9x8zX2z0i0R7h",
-        startDate: "2024-11-17T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 3,
-        travelPlanId: 1,
-        title: "Uluwatu Temple",
-        latitude: -8.8291,
-        longitude: 115.0849,
-        photoUrl: "/images/Uluwatu Temple.jpeg",
-        googlePlaceId: "ChIJk9x8zX3z0i0R7i",
-        startDate: "2024-11-18T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 4,
-        travelPlanId: 1,
-        title: "Jimbaran Beach",
-        latitude: -8.7747,
-        longitude: 115.1658,
-        photoUrl: "/images/Jimbaran Beach.jpeg",
-        googlePlaceId: "ChIJk9x8zX4z0i0R7j",
-        startDate: "2024-11-18T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-      {
-        id: 5,
-        travelPlanId: 1,
-        title: "Ubud Monkey Forest",
-        latitude: -8.5193,
-        longitude: 115.2603,
-        photoUrl: "/images/Ubud Monkey Forest.jpeg",
-        googlePlaceId: "ChIJk9x8zX5z0i0R7k",
-        startDate: "2024-11-19T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-10-01T00:00:00.000Z",
-        updatedAt: "2024-10-01T00:00:00.000Z",
-      },
-    ],
-  },
-  {
-    id: 2,
-    authorId: 2,
-    title: "Winter in Paris",
-    cityTitle: "Paris, France",
-    notes: "A magical winter trip to Paris",
-    startDate: "2024-08-03T00:00:00.000Z",
-    endDate: "2024-08-08T00:00:00.000Z",
-    visibility: "PRIVATE",
-    createdAt: "2024-07-01T00:00:00.000Z",
-    updatedAt: "2024-07-02T00:00:00.000Z",
-    user: { username: "user2" },
-    destinations: [
-      {
-        id: 6,
-        travelPlanId: 2,
-        title: "Eiffel Tower",
-        latitude: 48.8584,
-        longitude: 2.2945,
-        photoUrl: "/images/eiffel.jpeg",
-        googlePlaceId: "ChIJk9x8zX6z0i0R7l",
-        startDate: "2024-08-03T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-      {
-        id: 7,
-        travelPlanId: 2,
-        title: "Champ-Élysées",
-        latitude: 48.8698,
-        longitude: 2.3077,
-        photoUrl: "/images/champs-elysees.jpeg",
-        googlePlaceId: "ChIJk9x8zX7z0i0R7m",
-        startDate: "2024-08-03T00:00:00.000Z",
-        dailyVisitOrder: 2,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-      {
-        id: 8,
-        travelPlanId: 2,
-        title: "Louvre Museum",
-        latitude: 48.8606,
-        longitude: 2.3376,
-        photoUrl: "/images/louvre.jpeg",
-        googlePlaceId: "ChIJk9x8zX8z0i0R7n",
-        startDate: "2024-08-04T00:00:00.000Z",
-        dailyVisitOrder: 1,
-        createdAt: "2024-07-01T00:00:00.000Z",
-        updatedAt: "2024-07-01T00:00:00.000Z",
-      },
-    ],
-  },
-];
+import axios from "axios";
 
 export default function CreateJournalPage() {
   const router = useRouter();
@@ -157,25 +20,90 @@ export default function CreateJournalPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [journalExists, setJournalExists] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
-    // Fetch plan from mock data
-    const selectedPlan = mockPlans.find((plan) => plan.id === parseInt(id));
-    if (selectedPlan) {
-      setPlan(selectedPlan);
+    const fetchPlanData = async () => {
+      try {
+        const response = await axios.get(`/api/plans/${id}`, {
+          withCredentials: true,
+        });
+        
+        if (response.data.status === "success") {
+          const selectedPlan = response.data.data;
+          console.log("Plan data:", selectedPlan);
+          setPlan(selectedPlan);
 
-      const initialItineraryPhotos = selectedPlan.destinations.map(() => ({
-        photo: null,
-      }));
-      setFormData((prev) => ({
-        ...prev,
-        itineraryPhotos: initialItineraryPhotos,
-      }));
-      setLoading(false);
-    } else {
-      setError("Plan not found.");
-      setLoading(false);
-    }
+          // Extract all destinations from itinerary
+          let allDestinations = [];
+          if (selectedPlan && selectedPlan.itinerary && Array.isArray(selectedPlan.itinerary)) {
+            selectedPlan.itinerary.forEach(day => {
+              if (day.places && Array.isArray(day.places)) {
+                allDestinations = [...allDestinations, ...day.places];
+              }
+            });
+            
+            // Add destinations property to plan for easier access
+            selectedPlan.destinations = allDestinations;
+            
+            const initialItineraryPhotos = allDestinations.map(() => ({
+              photo: null,
+            }));
+            setFormData((prev) => ({
+              ...prev,
+              itineraryPhotos: initialItineraryPhotos,
+            }));
+          } else {
+            console.warn("No itinerary found in the plan data");
+            // Initialize with empty array if no destinations
+            setFormData((prev) => ({
+              ...prev,
+              itineraryPhotos: [],
+            }));
+          }
+
+          // Check if a journal already exists for this plan
+          try {
+            // Get all journals
+            const journalsResponse = await axios.get(`/api/journals`, {
+              withCredentials: true,
+            });
+            
+            if (journalsResponse.data.status === "success" && journalsResponse.data.data) {
+              const allJournals = journalsResponse.data.data;
+              console.log("All journals:", allJournals);
+              
+              // Look for a journal that might be for this travel plan
+              // Note: This is imperfect since the API doesn't return travelPlanId in the journal data
+              // We're looking for matching title/dates as a best guess
+              const possibleJournal = allJournals.find(journal => 
+                journal.title === selectedPlan.title && 
+                journal.startDate === selectedPlan.startDate
+              );
+              
+              if (possibleJournal) {
+                console.log("Found possible journal for this plan:", possibleJournal);
+                setJournalExists(true);
+              }
+            }
+          } catch (journalsError) {
+            console.error("Error checking for existing journal:", journalsError);
+            // Continue anyway - we'll let the user try to create a journal
+          }
+        } else {
+          setError("Failed to fetch plan data.");
+        }
+      } catch (err) {
+        console.error("Error fetching plan:", err);
+        setError("Error fetching plan data. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlanData();
   }, [id]);
 
   // Handle star rating
@@ -200,40 +128,74 @@ export default function CreateJournalPage() {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
-    // Simulate photo uploads and create attachments (mock TravelPlanDestinationAttachment)
-    const attachments = formData.itineraryPhotos.map((dest, index) => {
-      if (dest.photo) {
-        return {
-          travel_plan_destination_id: plan.destinations[index].id,
-          url: URL.createObjectURL(dest.photo),
-          order: 1,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+    
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      
+      // Prepare the data for submission
+      const journalData = {
+        notes: formData.notes,
+        futureTip: formData.futureTip,
+        favNotes: formData.favNotes,
+        rating: formData.rating,
+        photoAttachments: []
+      };
+      
+      // Add photo attachments if available
+      if (formData.itineraryPhotos && formData.itineraryPhotos.length > 0) {
+        // Process photos for destinations that have photos
+        const photoAttachments = [];
+        
+        for (let i = 0; i < formData.itineraryPhotos.length; i++) {
+          const photoItem = formData.itineraryPhotos[i];
+          
+          // Skip if no photo
+          if (!photoItem.photo) continue;
+          
+          // Get the destination for this photo
+          if (i < plan.destinations.length) {
+            const destination = plan.destinations[i];
+            
+            // Get the placeId (either id or googlePlaceId)
+            const placeId = destination.id || 
+                          (destination.googlePlaceId ? destination.googlePlaceId.toString() : null);
+            
+            if (placeId) {
+              // In a real implementation, you would upload the photo to a server
+              // For now, we'll use a placeholder URL
+              photoAttachments.push({
+                placeId: placeId,
+                photoUrl: "https://example.com/placeholder.jpg" // Use a placeholder URL
+              });
+            }
+          }
+        }
+        
+        journalData.photoAttachments = photoAttachments;
       }
-      return null;
-    }).filter(Boolean);
-
-    console.log("TravelPlanDestinationAttachments:", attachments);
-
-    // Matched to backend
-    const journalData = {
-      travel_plan_id: parseInt(id),
-      rating: formData.rating,
-      notes: formData.notes,
-      fav_notes: formData.favNotes,
-      future_tip: formData.futureTip,
-    };
-
-    console.log("Journal Data:", journalData);
-
-    // Simulate a successful save
-    alert("Journal saved successfully! Check the console for the data.");
-    router.push("/plans");
+      
+      console.log("Submitting journal data:", journalData);
+      
+      // Send data to API
+      const response = await axios.post(`/api/journals/${id}`, journalData, {
+        withCredentials: true,
+      });
+      
+      if (response.data.status === "success") {
+        console.log("Journal created successfully:", response.data);
+        router.push(`/plans/${id}/journal`);
+      } else {
+        setSubmitError("Failed to create journal. Please try again.");
+      }
+    } catch (err) {
+      console.error("Error creating journal:", err);
+      setSubmitError(err.response?.data?.message || "Error creating journal. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -252,21 +214,40 @@ export default function CreateJournalPage() {
     return <div className="container mx-auto p-6 text-red-600">Plan not found.</div>;
   }
 
+  if (journalExists) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h2 className="text-2xl font-bold mb-4">A journal already exists for this plan.</h2>
+        <button
+          onClick={() => router.push(`/plans/${id}/journal`)}
+          className="bg-indigo-500 text-white py-3 px-6 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+        >
+          View Journal
+        </button>
+      </div>
+    );
+  }
+
   // Calculate the number of days in the trip (inclusive of start and end dates)
   const numberOfDays = differenceInDays(new Date(plan.endDate), new Date(plan.startDate)) + 1;
 
-  // Group destinations by startDate
-  const groupedDestinations = plan.destinations.reduce((acc, dest, index) => {
-    const dateKey = format(new Date(dest.startDate), "yyyy-MM-dd"); // Use a consistent date format for grouping
-    if (!acc[dateKey]) {
-      acc[dateKey] = {
-        date: dest.startDate,
-        destinations: [],
-      };
-    }
-    acc[dateKey].destinations.push({ ...dest, originalIndex: index }); // Include original index for photo mapping
-    return acc;
-  }, {});
+  // Use the destinations array we created in useEffect
+  const destinations = plan.destinations || [];
+  
+  // Group destinations by startDate (if destinations exist)
+  const groupedDestinations = destinations.length > 0
+    ? destinations.reduce((acc, dest, index) => {
+        const dateKey = format(new Date(dest.startDate), "yyyy-MM-dd"); // Use a consistent date format for grouping
+        if (!acc[dateKey]) {
+          acc[dateKey] = {
+            date: dest.startDate,
+            destinations: [],
+          };
+        }
+        acc[dateKey].destinations.push({ ...dest, originalIndex: index }); // Include original index for photo mapping
+        return acc;
+      }, {})
+    : {};
 
   // Convert grouped destinations to an array for rendering
   const groupedDestinationsArray = Object.values(groupedDestinations);
@@ -276,7 +257,7 @@ export default function CreateJournalPage() {
       <div className="container mx-auto p-6">
         {/* Title */}
         <h1 className="text-3xl font-bold mb-6 text-black">
-          Journal your {plan.cityTitle} Trip!
+          Journal your {plan.title} Trip!
         </h1>
 
         {/* Two-column layout */}
@@ -285,64 +266,70 @@ export default function CreateJournalPage() {
           <div className="max-h-[70vh] overflow-y-auto bg-white p-6 rounded-lg shadow-md border border-indigo-200">
             <div>
               <h2 className="text-2xl font-semibold text-black mb-4 sticky top-0 z-10">
-                Itinerary - {numberOfDays} Days - {plan.destinations.length} Places
+                Itinerary - {numberOfDays} Days - {destinations.length} Places
               </h2>
             </div>
 
-            {groupedDestinationsArray.map((group, groupIndex) => (
-              <div key={groupIndex} className="mb-6">
-                <h3 className="text-lg font-medium text-indigo-600 mb-2">
-                  {format(new Date(group.date), "d MMMM yyyy")}
-                </h3>
-                {group.destinations
-                  .sort((a, b) => a.dailyVisitOrder - b.dailyVisitOrder) // Sort by dailyVisitOrder
-                  .map((dest) => (
-                    <div
-                      key={dest.id}
-                      className="bg-white p-6 rounded-lg shadow-md mb-4 border border-indigo-200"
-                    >
-                      <div className="flex items-start space-x-4">
-                        <img
-                          src={dest.photoUrl || "/images/fallback.jpeg"}
-                          alt={dest.title}
-                          className="w-48 h-48 rounded-lg shadow-md"
-                        />
-                        <div className="flex-1">
-                          <h4 className="text-xl font-semibold text-indigo-600">
-                            {dest.title}
-                          </h4>
-                          <div className="mt-6">
-                            <label className="block text-gray-700 mb-2">
-                              Post your favorite moment here!
-                            </label>
-                            <label className="inline-block px-4 py-2 bg-white text-indigo-600 rounded-full cursor-pointer border border-indigo-400 shadow-md hover:bg-indigo-100 mb-2 transition-transform duration-200 transform hover:scale-110 active:scale-100">
-                              Upload Photo
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handlePhotoUpload(dest.originalIndex, e)}
-                                className="hidden"
-                              />
-                            </label>
-                            <label className="block text-gray-600 mb-2 italic">
-                              (1 photo per location)
-                            </label>
-                            {formData.itineraryPhotos[dest.originalIndex]?.photo && (
-                              <div className="mt-2">
-                                <img
-                                  src={URL.createObjectURL(formData.itineraryPhotos[dest.originalIndex].photo)}
-                                  alt="Uploaded moment"
-                                  className="w-16 h-16 object-cover shadow-md rounded-lg"
+            {groupedDestinationsArray.length > 0 ? (
+              groupedDestinationsArray.map((group, groupIndex) => (
+                <div key={groupIndex} className="mb-6">
+                  <h3 className="text-lg font-medium text-indigo-600 mb-2">
+                    {format(new Date(group.date), "d MMMM yyyy")}
+                  </h3>
+                  {group.destinations
+                    .sort((a, b) => a.dailyVisitOrder - b.dailyVisitOrder) // Sort by dailyVisitOrder
+                    .map((dest, destIndex) => (
+                      <div
+                        key={dest.id || dest.googlePlaceId || `${groupIndex}-${destIndex}`}
+                        className="bg-white p-6 rounded-lg shadow-md mb-4 border border-indigo-200"
+                      >
+                        <div className="flex items-start space-x-4">
+                          <img
+                            src={dest.photoUrl || "/images/fallback.jpeg"}
+                            alt={dest.title}
+                            className="w-48 h-48 rounded-lg shadow-md"
+                          />
+                          <div className="flex-1">
+                            <h4 className="text-xl font-semibold text-indigo-600">
+                              {dest.title}
+                            </h4>
+                            <div className="mt-6">
+                              <label className="block text-gray-700 mb-2">
+                                Post your favorite moment here!
+                              </label>
+                              <label className="inline-block px-4 py-2 bg-white text-indigo-600 rounded-full cursor-pointer border border-indigo-400 shadow-md hover:bg-indigo-100 mb-2 transition-transform duration-200 transform hover:scale-110 active:scale-100">
+                                Upload Photo
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => handlePhotoUpload(dest.originalIndex, e)}
+                                  className="hidden"
                                 />
-                              </div>
-                            )}
+                              </label>
+                              <label className="block text-gray-600 mb-2 italic">
+                                (1 photo per location)
+                              </label>
+                              {formData.itineraryPhotos[dest.originalIndex]?.photo && (
+                                <div className="mt-2">
+                                  <img
+                                    src={URL.createObjectURL(formData.itineraryPhotos[dest.originalIndex].photo)}
+                                    alt="Uploaded moment"
+                                    className="w-16 h-16 object-cover shadow-md rounded-lg"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No destinations found for this plan.</p>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Right Side: Rating and note */}
@@ -418,12 +405,13 @@ export default function CreateJournalPage() {
           <button
             onClick={handleSubmit}
             className="bg-indigo-500 text-white py-3 px-6 rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+            disabled={submitting}
           >
-            Save
+            {submitting ? "Saving..." : "Save"}
           </button>
         </div>
 
-        {error && <p className="text-red-600 mt-4">{error}</p>}
+        {submitError && <p className="text-red-600 mt-4">{submitError}</p>}
       </div>
     </div>
   );

@@ -21,10 +21,13 @@ export default function CommunityPage() {
         });
         const plansData = response.data.data;
 
-        console.log("plans: ", plansData);
+        console.log("Raw plans data:", plansData);
 
         if (plansData && Array.isArray(plansData)) {
           const formattedPlans = plansData.map((plan, index) => {
+            // Log each plan's dates for debugging
+            console.log(`Plan ${plan.title} - createdAt: ${plan.createdAt}, startDate: ${plan.startDate}`);
+            
             return {
               id: index + 1,
               planId: plan.id,
@@ -33,14 +36,36 @@ export default function CommunityPage() {
               endDate: plan.endDate,
               totalLike: plan.totalLike,
               photoUrl: plan.photoUrl,
+              // Try to use the most accurate date for sorting
+              createdAt: plan.createdAt || plan.created_at || plan.updatedAt || plan.updated_at || new Date(plan.startDate).toISOString(),
               user: {
                 username: plan.user?.username || "Unknown",
               },
             };
           });
 
-          // เรียงลำดับตามจำนวนไลค์จากมากไปน้อย
-          formattedPlans.sort((a, b) => b.totalLike - a.totalLike);
+          console.log("Before sorting:", formattedPlans.map(p => ({ title: p.title, likes: p.totalLike, date: p.createdAt })));
+
+          // Sort by likes (most to least) and then by date (newest to oldest)
+          formattedPlans.sort((a, b) => {
+            // First sort by totalLike (descending)
+            if (b.totalLike !== a.totalLike) {
+              return b.totalLike - a.totalLike;
+            }
+            
+            // If totalLike is the same, sort by date (newest first)
+            // Ensure we're comparing dates correctly
+            const dateA = new Date(a.createdAt || a.startDate);
+            const dateB = new Date(b.createdAt || b.startDate);
+            
+            // Log the comparison for debugging
+            console.log(`Comparing dates for ${a.title} (${dateA}) and ${b.title} (${dateB})`);
+            
+            // Return newer dates first (descending order)
+            return dateB - dateA;
+          });
+
+          console.log("After sorting:", formattedPlans.map(p => ({ title: p.title, likes: p.totalLike, date: p.createdAt })));
 
           setPlans(formattedPlans);
         }
@@ -117,44 +142,6 @@ export default function CommunityPage() {
                 {/* Plan Card */}
                 <PlanCard key={plan.id} plan={plan} />
 
-                {/* Like and Bookmark Buttons */}
-                <div className="flex mt-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent click PlanCard's Link
-                      handleLike(plan.id);
-                    }}
-                    className={`p-2 rounded-full border shadow-md mr-2 transition-transform duration-200 transform hover:scale-110 active:scale-100 ${
-                      likedPlans.has(plan.id)
-                        ? "bg-red-500 text-white hover:bg-red-600"
-                        : "bg-white text-gray-700 hover:bg-red-100"
-                    }`}
-                  >
-                    <FiHeart
-                      className={`text-lg ${
-                        likedPlans.has(plan.id) ? "fill-current" : ""
-                      }`}
-                    />
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleBookmark(plan.id);
-                    }}
-                    className={`p-2 rounded-full border shadow-md transition-transform duration-200 transform hover:scale-110 active:scale-100 ${
-                      bookmarkedPlans.has(plan.id)
-                        ? "bg-indigo-500 text-white hover:bg-indigo-600"
-                        : "bg-white text-gray-700 hover:bg-indigo-100"
-                    }`}
-                  >
-                    <FiBookmark
-                      className={`text-lg ${
-                        bookmarkedPlans.has(plan.id) ? "fill-current" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
               </div>
             ))}
           </div>
