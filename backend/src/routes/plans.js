@@ -25,17 +25,18 @@ import { isAuthenticated } from "../middlewares/authMiddleware.js";
 const router = Router();
 
 // ===== Handlers =====
-router.get("/", getAllTravelPlans);
-
-router.get("/:id", getTravelPlanById);
-// 
-router.get("/user", isAuthenticated, getUserTravelPlans);
 
 router.get("/bookmarks", isAuthenticated, getUserBookmarks);
 
+router.get("/user", isAuthenticated, getUserTravelPlans);
+
+router.get("/", getAllTravelPlans);
+
+// router.get("/:id", getTravelPlanById);
+
 router.get("/:id", isAuthenticated, getTravelPlanById);
 
-router.post("/", createTravelPlan);
+router.post("/", isAuthenticated, createTravelPlan);
 
 router.put("/:id", isAuthenticated, updateTravelPlan);
 

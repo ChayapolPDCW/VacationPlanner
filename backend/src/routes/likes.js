@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { isAuthenticated } from "../middlewares/authMiddleware.js"
 import {
   createLikes,
   deleteLikes,
@@ -7,8 +8,8 @@ import {
 const router = Router();
 
 // ===== Handlers =====
-router.post("/:id", createLikes);
+router.post("/:id", isAuthenticated, createLikes);
 
-router.delete("/:id/", deleteLikes);
+router.delete("/:id", isAuthenticated, deleteLikes);
 
 export default router;

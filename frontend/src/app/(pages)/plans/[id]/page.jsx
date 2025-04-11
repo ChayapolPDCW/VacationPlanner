@@ -1,5 +1,6 @@
 "use client";
 
+import { useContext, useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,137 +12,139 @@ import { FiHeart, FiBookmark, FiHelpCircle } from "react-icons/fi";
 import { MapContext } from "@/app/ClientLayout";
 import axios from "axios";
 
+import { useUser } from "@/context/UserContext";
+
 // Dynamically import MapComponent (if needed, but we'll use GoogleMap directly)
 const MapComponent = dynamic(() => import("@/components/MapComponent"), {
   ssr: false,
 });
 
 // Mock data for plans (updated to match CreatePlanPage structure)
-const mockPlans = [
-  {
-    id: 1,
-    title: "Summer in Bali",
-    cityTitle: "Bali, Indonesia",
-    startDate: "2024-11-17T00:00:00.000Z",
-    endDate: "2024-11-23T00:00:00.000Z",
-    total_like: 198,
-    user: { id: 1, username: "user1" },
-    notes: "Bring sunscreen for Bali beaches!",
-    visibility: "PUBLIC",
-    itinerary: [
-      {
-        startDate: "2024-11-17T00:00:00.000Z",
-        places: [
-          {
-            id: 1,
-            title: "Kuta Beach",
-            latitude: -8.7186,
-            longitude: 115.1686,
-            photoUrl: "/images/kuta.jpeg",
-            googlePlaceId: "place_id_1",
-            travelTime: "15 mins, 4.2 km",
-          },
-          {
-            id: 2,
-            title: "Seminyak Beach",
-            latitude: -8.6894,
-            longitude: 115.1622,
-            photoUrl: "/images/seminyak.jpeg",
-            googlePlaceId: "place_id_2",
-            travelTime: "N/A",
-          },
-        ],
-      },
-      {
-        startDate: "2024-11-18T00:00:00.000Z",
-        places: [
-          {
-            id: 3,
-            title: "Uluwatu Temple",
-            latitude: -8.8291,
-            longitude: 115.0849,
-            photoUrl: "/images/Uluwatu Temple.jpeg",
-            googlePlaceId: "place_id_3",
-            travelTime: "45 mins, 18.3 km",
-          },
-          {
-            id: 4,
-            title: "Jimbaran Beach",
-            latitude: -8.7747,
-            longitude: 115.1658,
-            photoUrl: "/images/Jimbaran Beach.jpeg",
-            googlePlaceId: "place_id_4",
-            travelTime: "N/A",
-          },
-        ],
-      },
-      {
-        startDate: "2024-11-19T00:00:00.000Z",
-        places: [
-          {
-            id: 5,
-            title: "Ubud Monkey Forest",
-            latitude: -8.5193,
-            longitude: 115.2603,
-            photoUrl: "/images/Ubud Monkey Forest.jpeg",
-            googlePlaceId: "place_id_5",
-            travelTime: "N/A",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    id: 2,
-    title: "Winter in Paris",
-    cityTitle: "Paris, France",
-    startDate: "2024-08-03T00:00:00.000Z",
-    endDate: "2024-08-08T00:00:00.000Z",
-    total_like: 167,
-    user: { id: 2, username: "user2" },
-    notes: "Wear warm clothes in Paris!",
-    visibility: "PUBLIC",
-    itinerary: [
-      {
-        startDate: "2024-08-03T00:00:00.000Z",
-        places: [
-          {
-            id: 6,
-            title: "Eiffel Tower",
-            latitude: 48.8584,
-            longitude: 2.2945,
-            photoUrl: "/images/eiffel.jpeg",
-            googlePlaceId: "place_id_6",
-            travelTime: "15 mins, 2.1 km",
-          },
-          {
-            id: 7,
-            title: "Champ-Élysées",
-            latitude: 48.8698,
-            longitude: 2.3077,
-            photoUrl: "/images/champs-elysees.jpeg",
-            googlePlaceId: "place_id_7",
-            travelTime: "N/A",
-          },
-        ],
-      },
-      {
-        startDate: "2024-08-04T00:00:00.000Z",
-        places: [
-          {
-            id: 8,
-            title: "Louvre Museum",
-            latitude: 48.8606,
-            longitude: 2.3376,
-            photoUrl: "/images/louvre.jpeg",
-            googlePlaceId: "place_id_8",
-            travelTime: "N/A",
-          },
-        ],
-      },
-    ],
-  },
-];
+// const mockPlans = [
+//   {
+//     id: 1,
+//     title: "Summer in Bali",
+//     cityTitle: "Bali, Indonesia",
+//     startDate: "2024-11-17T00:00:00.000Z",
+//     endDate: "2024-11-23T00:00:00.000Z",
+//     total_like: 198,
+//     user: { id: 1, username: "user1" },
+//     notes: "Bring sunscreen for Bali beaches!",
+//     visibility: "PUBLIC",
+//     itinerary: [
+//       {
+//         startDate: "2024-11-17T00:00:00.000Z",
+//         places: [
+//           {
+//             id: 1,
+//             title: "Kuta Beach",
+//             latitude: -8.7186,
+//             longitude: 115.1686,
+//             photoUrl: "/images/kuta.jpeg",
+//             googlePlaceId: "place_id_1",
+//             travelTime: "15 mins, 4.2 km",
+//           },
+//           {
+//             id: 2,
+//             title: "Seminyak Beach",
+//             latitude: -8.6894,
+//             longitude: 115.1622,
+//             photoUrl: "/images/seminyak.jpeg",
+//             googlePlaceId: "place_id_2",
+//             travelTime: "N/A",
+//           },
+//         ],
+//       },
+//       {
+//         startDate: "2024-11-18T00:00:00.000Z",
+//         places: [
+//           {
+//             id: 3,
+//             title: "Uluwatu Temple",
+//             latitude: -8.8291,
+//             longitude: 115.0849,
+//             photoUrl: "/images/Uluwatu Temple.jpeg",
+//             googlePlaceId: "place_id_3",
+//             travelTime: "45 mins, 18.3 km",
+//           },
+//           {
+//             id: 4,
+//             title: "Jimbaran Beach",
+//             latitude: -8.7747,
+//             longitude: 115.1658,
+//             photoUrl: "/images/Jimbaran Beach.jpeg",
+//             googlePlaceId: "place_id_4",
+//             travelTime: "N/A",
+//           },
+//         ],
+//       },
+//       {
+//         startDate: "2024-11-19T00:00:00.000Z",
+//         places: [
+//           {
+//             id: 5,
+//             title: "Ubud Monkey Forest",
+//             latitude: -8.5193,
+//             longitude: 115.2603,
+//             photoUrl: "/images/Ubud Monkey Forest.jpeg",
+//             googlePlaceId: "place_id_5",
+//             travelTime: "N/A",
+//           },
+//         ],
+//       },
+//     ],
+//   },
+//   {
+//     id: 2,
+//     title: "Winter in Paris",
+//     cityTitle: "Paris, France",
+//     startDate: "2024-08-03T00:00:00.000Z",
+//     endDate: "2024-08-08T00:00:00.000Z",
+//     total_like: 167,
+//     user: { id: 2, username: "user2" },
+//     notes: "Wear warm clothes in Paris!",
+//     visibility: "PUBLIC",
+//     itinerary: [
+//       {
+//         startDate: "2024-08-03T00:00:00.000Z",
+//         places: [
+//           {
+//             id: 6,
+//             title: "Eiffel Tower",
+//             latitude: 48.8584,
+//             longitude: 2.2945,
+//             photoUrl: "/images/eiffel.jpeg",
+//             googlePlaceId: "place_id_6",
+//             travelTime: "15 mins, 2.1 km",
+//           },
+//           {
+//             id: 7,
+//             title: "Champ-Élysées",
+//             latitude: 48.8698,
+//             longitude: 2.3077,
+//             photoUrl: "/images/champs-elysees.jpeg",
+//             googlePlaceId: "place_id_7",
+//             travelTime: "N/A",
+//           },
+//         ],
+//       },
+//       {
+//         startDate: "2024-08-04T00:00:00.000Z",
+//         places: [
+//           {
+//             id: 8,
+//             title: "Louvre Museum",
+//             latitude: 48.8606,
+//             longitude: 2.3376,
+//             photoUrl: "/images/louvre.jpeg",
+//             googlePlaceId: "place_id_8",
+//             travelTime: "N/A",
+//           },
+//         ],
+//       },
+//     ],
+//   },
+// ];
 
 // Mock journals to check if a plan has a journal
 const mockJournals = [
@@ -153,18 +156,19 @@ const mockJournals = [
   // Plan 2 has no journal
 ];
 
-
 // Mock current user (simulating authentication)
-const mockCurrentUser = { id: 1, username: "user1" }; // Change this to test different users
+// const mockCurrentUser = { id: 1, username: "user1" }; // Change this to test different users
 
 export default function PlanDetail() {
+  const { user } = useUser();
   const router = useRouter();
   const params = useParams();
   const planId = parseInt(params.id);
 
   const { isMapLoaded, mapError } = useContext(MapContext);
 
-  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [error, setError] = useState("");
+  // const [plan, setSelectedPlan] = useState(null);
   const [plan, setPlan] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
   const [hasJournal, setHasJournal] = useState(false);
@@ -184,9 +188,9 @@ export default function PlanDetail() {
     "#FFFF00",
   ];
 
-  // useEffect(() => {
-  //   setIsClient(true);
-  // }, []);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     // Simulate fetching the plan
@@ -197,42 +201,52 @@ export default function PlanDetail() {
     // }
     const fetchPlanData = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/plans/${planId}`);
-    
-        // response.data;
-        console.log("selectedPlan: ", response.data.data);
-        return response.data.data;
+        const response = await fetch(`/api/plans/${planId}`, {
+          withCredentials: true,
+        });
+
+        const responseJson = await response.json();
+        const currentSelectedPlan = responseJson.data;
+        console.log("currentSelectedPlan:", currentSelectedPlan);
+        setPlan(currentSelectedPlan);
+        // setSelectedPlan(currentSelectedPlan);
       } catch (error) {
-        console.error(error.message)
+        console.error(error.message);
         setError("Error getting plan information");
       }
+    };
+    fetchPlanData();
+    console.log("selectedPlan: ", plan);
+  }, [planId]);
+
+  useEffect(() => {
+    console.log("selectedPlan:: ", plan);
+
+    if (plan) {
+      setPlan(plan);
+
+      if (plan.likedByUsers.includes(user.id)) {
+        setLiked(true);
+      }
+
+      setTotalLikes(plan.totalLike);
+
+      // Check if the current user is the owner
+      const owner = user && plan.user.id === user.id;
+
+      if (owner)
+        setIsOwner(true);
+
+      // Check if the plan has a journal
+      const journalExists = mockJournals.some((j) => j.planId === planId);
+      setHasJournal(journalExists);
+
+      // Initialize directions
+      if (isMapLoaded && plan.itinerary) {
+        updateDirections(plan.itinerary);
+      }
     }
-
-    let selectedPlan = fetchPlanData();
-    
-    if (selectedPlan) {
-      setSelectedPlan(selectedPlan);
-    }
-
-    console.log(selectedPlan);
-
-    setPlan(selectedPlan);
-    setTotalLikes(selectedPlan.total_like);
-
-    // Check if the current user is the owner
-    // const owner = mockCurrentUser && selectedPlan.user.id === mockCurrentUser.id;
-
-    setIsOwner(owner);
-
-    // Check if the plan has a journal
-    // const journalExists = mockJournals.some((j) => j.planId === planId);
-    setHasJournal(journalExists);
-
-    // Initialize directions
-    if (isMapLoaded && selectedPlan.itinerary) {
-      updateDirections(selectedPlan.itinerary);
-    }
-  }, [planId, isMapLoaded]);
+  }, [plan, isMapLoaded, liked]);
 
   const updateDirections = useCallback((itinerary) => {
     if (typeof window === "undefined" || !window.google) return;
@@ -275,9 +289,26 @@ export default function PlanDetail() {
     });
   }, []);
 
-  const handleLike = () => {
-    setLiked((prev) => !prev);
-    setTotalLikes((prev) => (liked ? prev - 1 : prev + 1));
+  const handleLike = async () => {
+    // setLiked((prev) => !prev);
+    // setTotalLikes((prev) => (liked ? prev - 1 : prev + 1));
+    try {
+      if (liked) {
+        // If already liked, send a DELETE request to remove the like
+        await axios.delete(`/api/likes/${plan.id}`, { withCredentials: true });
+        setLiked(false);
+        setTotalLikes((prev) => prev - 1);
+      } else {
+        // If not liked, send a POST request to add the like
+        await axios.post(`/api/likes/${plan.id}`, {
+          withCredentials: true,
+        });
+        setLiked(true);
+        setTotalLikes((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error("Error updating like status:", error.message);
+    }
   };
 
   const handleBookmark = () => {
@@ -288,6 +319,14 @@ export default function PlanDetail() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
+      </div>
+    );
+  } else if (!plan.itinerary) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-2xl text-indigo-600 font-semibold">
+          There is no itinerary to show.
+        </div>
       </div>
     );
   }
@@ -406,7 +445,8 @@ export default function PlanDetail() {
                                   {place.title}
                                 </h4>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  Travel Time to Next Location: {place.travelTime}
+                                  Travel Time to Next Location:{" "}
+                                  {place.travelTime}
                                 </p>
                               </div>
                             </div>
@@ -464,7 +504,9 @@ export default function PlanDetail() {
                         }`}
                       >
                         <FiBookmark
-                          className={`text-lg ${bookmarked ? "fill-current" : ""}`}
+                          className={`text-lg ${
+                            bookmarked ? "fill-current" : ""
+                          }`}
                         />
                       </button>
                     </div>
@@ -472,25 +514,25 @@ export default function PlanDetail() {
 
                   {/* Journal Buttons */}
                   <div className="mt-2">
-                    {isOwner ? (
-                      !hasJournal && (
-                        <Link href={`/plans/${plan.id}/create_journal`}>
-                          <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                            Journal this Trip
-                          </button>
-                        </Link>
-                      )
-                    ) : (
-                      hasJournal && (
-                        <Link
-                          href={`/journal/${mockJournals.find((j) => j.planId === planId)?.id}`}
-                        >
-                          <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                            Read this plan journal
-                          </button>
-                        </Link>
-                      )
-                    )}
+                    {isOwner
+                      ? !hasJournal && (
+                          <Link href={`/plans/${plan.id}/create_journal`}>
+                            <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                              Journal this Trip
+                            </button>
+                          </Link>
+                        )
+                      : hasJournal && (
+                          <Link
+                            href={`/journal/${
+                              mockJournals.find((j) => j.planId === planId)?.id
+                            }`}
+                          >
+                            <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                              Read this plan journal
+                            </button>
+                          </Link>
+                        )}
                   </div>
                 </div>
               </div>
@@ -550,7 +592,9 @@ export default function PlanDetail() {
                             options={{
                               polylineOptions: {
                                 strokeColor:
-                                  dayColors[parseInt(dayIndex) % dayColors.length],
+                                  dayColors[
+                                    parseInt(dayIndex) % dayColors.length
+                                  ],
                                 strokeOpacity: 0.8,
                                 strokeWeight: 5,
                               },
@@ -573,7 +617,9 @@ export default function PlanDetail() {
         </div>
       ) : (
         <div className="flex h-screen items-center justify-center">
-          <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
+          <div className="text-2xl text-indigo-600 font-semibold">
+            Loading...
+          </div>
         </div>
       )}
     </div>

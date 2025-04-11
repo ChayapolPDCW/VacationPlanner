@@ -68,40 +68,47 @@ const mockJournals = [
 export default function ProfilePage() {
   const { user } = useUser();
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState(null);
+  // const [user, setCurrentUser] = useState(null);
   const [plans, setPlans] = useState([]);
+  const [totalLikes, setTotalLikes] = useState(0);
   const [journals, setJournals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
 
   useEffect(() => {
     try {
       // Simulate fetching data (replace with API calls later)
-      setCurrentUser(user);
+      // setCurrentUser(user);
 
-      console.log("LLL", `http://localhost:5000/api/plans?author_id=${user.id}`);
+      // console.log("LLL", `http://localhost:5000/api/plans?author_id=${user.id}`);
 
-      // const getMyPlans = async () => {
-      //   const response = await fetch(`http://localhost:5000/api/plans?author_id=${user.id}`, {
-      //     withCredentials: true
-      //   });
+      const getMyPlans = async () => {
+        const response = await fetch(`/api/plans?author_id=${user.id}`, {
+          withCredentials: true
+        });
         
-      //   const responseJson = response.json();
-      //   console.log("my plans: ", responseJson.data);
-      //   setPlans(responseJson.data);
-      // };
+        const responseJson = await response.json();
+        console.log("my plans: ", responseJson.data);
 
-      // getMyPlans();
+        let plansData = responseJson.data;
+        setPlans(plansData);
 
-      setPlans(mockPlans);
+        const totalLikesCount = plansData.reduce((sum, plan) => sum + (plan.totalLike || 0), 0);
+        setTotalLikes(totalLikesCount);
+      };
+
+      getMyPlans();
+
       setJournals(mockJournals);
       setIsLoading(false);
     } catch (e) {
       console.error(e.message);
     }
-  }, [user]);
 
   // Calculate total likes from plans
-  const totalLikes = plans.reduce((sum, plan) => sum + (plan.likes || 0), 0);
+  // setTotalLikes(plans.reduce((sum, plan) => sum + (plan.likes || 0), 0));
+}, [user]);
+
 
   // Handle loading
   if (isLoading) {
@@ -114,7 +121,7 @@ export default function ProfilePage() {
   }
 
   // Handle user data is not available
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-2xl text-red-600">User data not found</div>
@@ -141,13 +148,13 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg shadow-md -mt-12 mx-4 p-6 relative">
           {/* Profile Picture */}
           <div className="flex justify-center -mt-16">
-            <Avatar src={`http://localhost:5000/uploads${currentUser.avatarUrl}` || "/images/default-avatar.png"} alt={`${currentUser.username}'s avatar`} className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
+            <Avatar src={user.avatarUrl ? `http://localhost:5000/uploads${user.avatarUrl}` : "/images/default-avatar.png"} alt={`${user.username}'s avatar`} className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
           </div>
 
           {/* User Info */}
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-800 text-center">{currentUser.username}</h1>
-            <p className="text-gray-600 text-center">{currentUser.email}</p>
+            <h1 className="text-2xl font-bold text-gray-800 text-center">{user.username}</h1>
+            <p className="text-gray-600 text-center">{user.email}</p>
 
           </div>
 
@@ -174,11 +181,11 @@ export default function ProfilePage() {
             <div className="text-sm text-gray-600 space-y-2 text-left">
               <p>
                 <span className="font-medium">Joined: </span>
-                {format(new Date(currentUser.createdAt), "d MMMM yyyy")}
+                {format(new Date(user.createdAt), "d MMMM yyyy")}
               </p>
               <p>
                 <span className="font-medium">Last Edited: </span>
-                {format(new Date(currentUser.updatedAt), "d MMMM yyyy, h:mm a")}
+                {format(new Date(user.updatedAt), "d MMMM yyyy, h:mm a")}
               </p>
             </div>
 

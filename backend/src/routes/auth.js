@@ -20,7 +20,7 @@ router.post("/check", (req, res, next) => {
   if (!req.session.user) {
     res.status(200).json({
       status: false,
-      message: "Not Authenticated"
+      message: "Not Authenticated",
     });
 
     return;

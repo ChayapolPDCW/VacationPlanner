@@ -3,86 +3,60 @@
 import Link from "next/link";
 import PlanCard from "../../../components/PlanCard";
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { FiHeart, FiBookmark } from "react-icons/fi";
 
 export default function CommunityPage() {
-  // Mock data (to be replaced with API call later)
-  const communityPlans = [
-    {
-      id: 1,
-      name: "Summer in Bali",
-      start_date: "2024-11-17T00:00:00.000Z",
-      end_date: "2024-11-23T00:00:00.000Z",
-      total_like: 198,
-      user: { username: "user1" },
-      photo_url: "", // Added photo_url
-    },
-    {
-      id: 2,
-      name: "Winter in Paris",
-      start_date: "2024-08-03T00:00:00.000Z",
-      end_date: "2024-08-08T00:00:00.000Z",
-      total_like: 167,
-      user: { username: "user2" },
-      photo_url: "", // Added photo_url
-    },
-    {
-      id: 3,
-      name: "Hiking in Alps",
-      start_date: "2024-08-12T00:00:00.000Z",
-      end_date: "2024-08-23T00:00:00.000Z",
-      total_like: 151,
-      user: { username: "user3" },
-      photo_url: "", // Added photo_url
-    },
-    {
-      id: 4,
-      name: "Beach Getaway in Maldives",
-      start_date: "2024-09-05T00:00:00.000Z",
-      end_date: "2024-09-10T00:00:00.000Z",
-      total_like: 134,
-      user: { username: "user4" },
-      photo_url: "", // Added photo_url
-    },
-    {
-      id: 5,
-      name: "City Tour in Tokyo",
-      start_date: "2024-10-20T00:00:00.000Z",
-      end_date: "2024-10-25T00:00:00.000Z",
-      total_like: 122,
-      user: { username: "user5" },
-      photo_url: "", // Added photo_url
-    },
-    {
-      id: 6,
-      name: "Safari in Kenya",
-      start_date: "2024-12-01T00:00:00.000Z",
-      end_date: "2024-12-07T00:00:00.000Z",
-      total_like: 109,
-      user: { username: "user6" },
-      photo_url: "", // Added photo_url
-    },
-  ];
-
-  
-  const [sortedPlans, setSortedPlans] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [likedPlans, setLikedPlans] = useState(new Set()); // liked plans
   const [bookmarkedPlans, setBookmarkedPlans] = useState(new Set()); // bookmarked plans
 
-  
   useEffect(() => {
-    const transformedPlans = communityPlans.map((plan) => ({
-      ...plan,
-      plan_id: plan.id, // Map id to plan_id
-      title: plan.name, // Map name to title
-    }));
-    const sorted = [...transformedPlans].sort((a, b) => b.total_like - a.total_like);
-    setSortedPlans(sorted);
-  }, []);
+    const fetchPlans = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get("/api/plans", {
+          withCredentials: true,
+        });
+        const plansData = response.data.data;
+        
+        console.log("plans: ", plansData);
+        
+        if (plansData && Array.isArray(plansData)) {
+          const formattedPlans = plansData.map((plan, index) => {
+            return {
+              id: index + 1,
+              plan_id: plan.id,
+              title: plan.title,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+              totalLike: plan.totalLike,
+              photo_url: plan.photoUrl,
+              user: {
+                username: plan.user?.username || "Unknown"
+              }
+            };
+          });
+          
+          // เรียงลำดับตามจำนวนไลค์จากมากไปน้อย
+          formattedPlans.sort((a, b) => b.totalLike - a.totalLike);
+          
+          setPlans(formattedPlans);
+        }
+      } catch (error) {
+        console.error("Error fetching plans:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlans();
+  }, []); // Empty dependency array to run only once on component mount
 
   // liking/unliking
   const handleLike = (planId) => {
-    setSortedPlans((prevPlans) =>
+    setPlans((prevPlans) =>
       prevPlans.map((plan) => {
         if (plan.id === planId) {
           const isLiked = likedPlans.has(planId);
@@ -127,11 +101,15 @@ export default function CommunityPage() {
           Explore travel plans shared by the community. Get inspired, save your favorites, or share your own!
         </p>
 
-        {sortedPlans.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center h-40">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : plans.length === 0 ? (
           <p className="text-gray-600">No plans available in the community.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedPlans.map((plan) => (
+            {plans.map((plan) => (
               <div key={plan.id} className="relative">
                 {/* Plan Card */}
                 <PlanCard plan={plan} />

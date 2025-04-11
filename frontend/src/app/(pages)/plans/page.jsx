@@ -5,8 +5,11 @@ import PlanCard from "../../../components/PlanCard";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+import { useUser } from "@/context/UserContext";
+
 export default function PlansPage() {
-  const [userPlans, setUserPlans] = useState([]);
+  const { user } = useUser();
+  const [currentUserPlans, setCurrentUserPlans] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [view, setView] = useState("My plans");
   const [loading, setLoading] = useState(true);
@@ -19,91 +22,117 @@ export default function PlansPage() {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch("/api/plans/user", {
-          withCredentials: true
+
+        const response = await fetch(`/api/plans?author_id=${user.id}`, {
+          withCredentials: true,
         });
-        
-        const plansData = response.data;
+
+        const responseJson = await response.json();
+
+        let plansData = responseJson.data;
         console.log("User plans: ", plansData);
-        
-        if (plansData && Array.isArray(plansData)) {
+
+        if (plansData) {
+          let index = 1;
           // แปลงข้อมูลให้อยู่ในรูปแบบที่เหมาะสมสำหรับ PlanCard
           const formattedPlans = plansData.map((plan) => {
             return {
-              id: plan.id,
-              plan_id: plan.id,
+              id: index++,
+              planId: plan.id,
               title: plan.title,
-              start_date: plan.startDate,
-              end_date: plan.endDate,
-              total_like: plan.totalLike,
-              photo_url: plan.photoUrl,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+              totalLike: plan.totalLike,
+              photoUrl: plan.photoUrl,
               user: {
-                username: plan.user?.username || "Unknown"
-              }
+                username: plan.user?.username || "Unknown",
+              },
             };
           });
-          
-          setUserPlans(formattedPlans);
+
+          setCurrentUserPlans(formattedPlans);
+          console.log("userPlans: ", currentUserPlans);
         }
       } catch (error) {
         console.error("Error fetching user plans:", error);
-        setError("Failed to load your plans. Please try again later. (try login then will show up : ya writed)");
-        setUserPlans([]);
+        setError(
+          "Failed to load your plans. Please try again later. (try login then will show up : ya writed)"
+        );
+        setCurrentUserPlans([]);
       } finally {
         setLoading(false);
       }
     };
-    
-    fetchUserPlans();
-  }, []);
 
-  // ฟังก์ชันสำหรับดึงข้อมูล bookmarks
-  const fetchUserBookmarks = async () => {
-    try {
-      setBookmarksLoading(true);
-      setBookmarksError(null);
-      
-      const response = await axios.get("http://localhost:5000/api/plans/bookmarks", {
-        withCredentials: true,
-      });
-      
-      const bookmarksData = response.data.data;
-      console.log("User bookmarks: ", bookmarksData);
-      
-      if (bookmarksData && Array.isArray(bookmarksData)) {
-        // แปลงข้อมูลให้อยู่ในรูปแบบที่เหมาะสมสำหรับ PlanCard
-        const formattedBookmarks = bookmarksData.map((plan) => {
-          return {
-            id: plan.id,
-            plan_id: plan.id,
-            title: plan.title,
-            start_date: plan.startDate,
-            end_date: plan.endDate,
-            total_like: plan.totalLike,
-            photo_url: plan.photoUrl,
-            user: {
-              username: plan.user?.username || "Unknown"
-            }
-          };
+    fetchUserPlans();
+  }, [user]);
+
+  useEffect(() => {
+    // ฟังก์ชันสำหรับดึงข้อมูล bookmarks
+    const fetchUserBookmarks = async () => {
+      try {
+        setBookmarksLoading(true);
+        setBookmarksError(null);
+
+        const response = await fetch("/api/plans/bookmarks", {
+          withCredentials: true,
         });
-        
-        setBookmarks(formattedBookmarks);
+
+        const responseJson = await response.json();
+        const bookmarkedTravelPlans = responseJson.data;
+        console.log("User bookmarks: ", bookmarkedTravelPlans);
+
+        if (bookmarkedTravelPlans /* && Array.isArray(bookmarkIds) */) {
+          // แปลงข้อมูลให้อยู่ในรูปแบบที่เหมาะสมสำหรับ PlanCard
+
+          // for (let bookmark in bookmarkedTravelPlans) {
+          //   const response = await fetch(`/api/plans/${bookmark.travelPlanId}`);
+          //   const responseJson = await response.json();
+
+          //   let bookmarkedPlans = responseJson.data;
+          //   console.log("bookmarkedPlans: ", bookmarkedPlans);
+          // }
+
+          let index = 1;
+          const formattedBookmarks = bookmarkedTravelPlans.map((plan) => {
+            return {
+              id: index++,
+              planId: plan.id,
+              title: plan.title,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+              totalLike: plan.totalLike,
+              photoUrl: plan.photoUrl,
+              user: {
+                username: plan.user?.username || "Unknown",
+              },
+            };
+          });
+
+          setBookmarks(formattedBookmarks);
+        }
+      } catch (error) {
+        console.error("Error fetching user bookmarks:", error);
+        setBookmarksError(
+          "Failed to load your bookmarks. Please try again later."
+        );
+        setBookmarks([]);
+      } finally {
+        setBookmarksLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching user bookmarks:", error);
-      setBookmarksError("Failed to load your bookmarks. Please try again later.");
-      setBookmarks([]);
-    } finally {
-      setBookmarksLoading(false);
-    }
-  };
+    };
+
+    fetchUserBookmarks();
+  }, [user]);
 
   // เมื่อกดปุ่ม Bookmarks ให้ดึงข้อมูล bookmarks
   const handleViewChange = (newView) => {
     setView(newView);
-    if (newView === "Bookmarks" && bookmarks.length === 0 && !bookmarksLoading) {
-      fetchUserBookmarks();
+    if (
+      newView === "Bookmarks" &&
+      bookmarks.length === 0 &&
+      !bookmarksLoading
+    ) {
     }
   };
 
@@ -156,11 +185,11 @@ export default function PlansPage() {
               <div className="flex justify-center items-center h-40">
                 <p className="text-red-500">{error}</p>
               </div>
-            ) : userPlans.length === 0 ? (
+            ) : currentUserPlans.length === 0 ? (
               <p className="text-gray-600">You have no plans yet.</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userPlans.map((plan) => (
+                {currentUserPlans.map((plan) => (
                   <PlanCard key={plan.id} plan={plan} />
                 ))}
               </div>

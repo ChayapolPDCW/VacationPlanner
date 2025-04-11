@@ -24,7 +24,9 @@ export default function Home() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/plans");
+        const response = await axios.get("/api/plans", {
+          withCredentials: true,
+        });
         const plansData = response.data.data;
         
         console.log("plans: ", plansData);
@@ -33,12 +35,12 @@ export default function Home() {
           const formattedPlans = plansData.map((plan, index) => {
             return {
               id: index + 1,
-              plan_id: plan.id,
+              planId: plan.id,
               title: plan.title,
-              start_date: plan.startDate,
-              end_date: plan.endDate,
-              total_like: plan.totalLike,
-              photo_url: plan.photoUrl,
+              startDate: plan.startDate,
+              endDate: plan.endDate,
+              totalLike: plan.totalLike,
+              photoUrl: plan.photoUrl,
               user: {
                 username: plan.user?.username || "Unknown"
               }
@@ -46,7 +48,7 @@ export default function Home() {
           });
           
           // เรียงลำดับตามจำนวนไลค์จากมากไปน้อย
-          formattedPlans.sort((a, b) => b.total_like - a.total_like);
+          formattedPlans.sort((a, b) => b.totalLike - a.totalLike);
           
           setPopularPlans(formattedPlans);
         }
@@ -57,7 +59,7 @@ export default function Home() {
 
     const fetchJournals = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/api/journals");
+        const response = await axios.get("/api/journals");
         const journalsData = response.data.data;
         
         console.log("journals: ", journalsData);
