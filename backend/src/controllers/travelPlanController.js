@@ -61,7 +61,6 @@ export const createTravelPlan = async (req, res) => {
     if (
       !title ||
       !cityTitle ||
-      !notes ||
       !startDate ||
       !endDate ||
       !visibility

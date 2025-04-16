@@ -99,7 +99,7 @@ export default function CreatePlanPage() {
   const handleCityTitleSubmit = () => {
     const place = autocompleteRef.current?.getPlace();
     if (!formData.cityTitle || !place || !place.formatted_address) {
-      setError("Please select a valid city from the suggestions.");
+      setError("Please select a valid city from the suggestions111.");
       return;
     }
 
@@ -321,7 +321,7 @@ export default function CreatePlanPage() {
         cityTitle: formData.cityTitle,
         startDate: formData.start_date.toISOString(),
         endDate: formData.end_date.toISOString(),
-        notes: formData.notes,
+        notes: formData.notes || "",
         visibility: formData.visibility,
         itinerary: itinerary.map((day) => ({
           startDate: day.date.toISOString(),
@@ -497,7 +497,7 @@ export default function CreatePlanPage() {
                         />
                       </div>
                     </div>
-                    {step < 3 && error && <p className="text-red-600">{error}</p>}
+
                     {step < 3 && (
                       <button
                         onClick={handleDatesSubmit}
@@ -637,7 +637,7 @@ export default function CreatePlanPage() {
                       </DragDropContext>
 
                       {/* Note Section for the Entire Plan */}
-                      <div className="mt-6">
+                      {/* <div className="mt-6">
                         <h2 className="text-xl font-semibold text-black mb-2">
                           Notes
                         </h2>
@@ -649,7 +649,7 @@ export default function CreatePlanPage() {
                           className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
                           rows="4"
                         />
-                      </div>
+                      </div> */}
                     </div>
                     {/* Visibility Checkbox and Save Plan Button */}
                     <div className="mt-4">

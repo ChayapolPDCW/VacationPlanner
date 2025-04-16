@@ -542,14 +542,14 @@ export default function PlanDetail() {
                   ))}
 
                   {/* Notes Section */}
-                  <div className="mt-6">
+                  {/* <div className="mt-6">
                     <h2 className="text-xl font-semibold text-black mb-2">
                       Notes
                     </h2>
                     <p className="text-black">
                       {plan.notes || "No notes available."}
                     </p>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Visibility and Buttons */}
