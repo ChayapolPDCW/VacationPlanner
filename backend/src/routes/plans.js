@@ -12,6 +12,7 @@ import {
   deleteTravelPlan,
   getUserTravelPlans,
   getUserBookmarks,
+  checkJournalExists,
 } from "../controllers/travelPlanController.js";
 import {
   createDestination,
@@ -35,6 +36,8 @@ router.get("/", getAllTravelPlans);
 // router.get("/:id", getTravelPlanById);
 
 router.get("/:id", isAuthenticated, getTravelPlanById);
+
+router.get("/:id/journal/check", isAuthenticated, checkJournalExists);
 
 router.post("/", isAuthenticated, createTravelPlan);
 

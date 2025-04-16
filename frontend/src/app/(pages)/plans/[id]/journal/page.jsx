@@ -13,6 +13,7 @@ export default function JournalDetailPage() {
   const [plan, setPlan] = useState(null);
   const [journal, setJournal] = useState(null);
   const [attachments, setAttachments] = useState([]);
+  const [placeNotes, setPlaceNotes] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState(null); // State to track the enlarged photo
@@ -86,6 +87,44 @@ export default function JournalDetailPage() {
                     };
                     
                     setJournal(fullJournalData);
+                    
+                    // Extract place notes if available
+                    if (journalDetailResponse.data.data.placeNotes && 
+                        journalDetailResponse.data.data.placeNotes.length > 0) {
+                      setPlaceNotes(journalDetailResponse.data.data.placeNotes);
+                      console.log("Place notes:", journalDetailResponse.data.data.placeNotes);
+                    } else {
+                      console.log("No place notes found in response");
+                    }
+                    
+                    // Extract attachments if available
+                    if (journalDetailResponse.data.data.travelPlan && 
+                        journalDetailResponse.data.data.travelPlan.destinations) {
+                      const destinations = journalDetailResponse.data.data.travelPlan.destinations;
+                      const allAttachments = [];
+                      
+                      destinations.forEach(dest => {
+                        if (dest.attachments && dest.attachments.length > 0) {
+                          console.log(`Found ${dest.attachments.length} attachments for destination ${dest.title}`);
+                          dest.attachments.forEach(att => {
+                            allAttachments.push({
+                              ...att,
+                              placeId: dest.googlePlaceId,
+                              destinationId: dest.id
+                            });
+                          });
+                        }
+                      });
+                      
+                      if (allAttachments.length > 0) {
+                        setAttachments(allAttachments);
+                        console.log("Attachments:", allAttachments);
+                      } else {
+                        console.log("No attachments found in response");
+                      }
+                    } else {
+                      console.log("No travel plan or destinations found in response");
+                    }
                     setLoading(false);
                   } else {
                     setError("Could not fetch journal details.");
@@ -267,9 +306,28 @@ export default function JournalDetailPage() {
                     {group.destinations
                       .sort((a, b) => a.dailyVisitOrder - b.dailyVisitOrder)
                       .map((dest, destIndex) => {
-                        const attachment = attachments.find(
-                          (att) => att.travelPlanDestinationId === dest.id
-                        );
+                        // หา attachments ที่เกี่ยวข้องกับสถานที่นี้
+                        const placeAttachments = attachments.filter(att => {
+                          console.log(`Comparing attachment: destId=${att.destinationId}, placeId=${att.placeId} with dest.id=${dest.id}, dest.googlePlaceId=${dest.googlePlaceId}`);
+                          return att.destinationId === dest.id || att.placeId === dest.googlePlaceId;
+                        });
+
+                        console.log(`Place attachments for ${dest.title}:`, placeAttachments);
+                        
+                        if (placeAttachments.length > 0) {
+                          console.log(`Found ${placeAttachments.length} attachments for ${dest.title}`);
+                        }
+                        
+                        // หา note ที่เกี่ยวข้องกับสถานที่นี้
+                        const placeNote = placeNotes.find(note => {
+                          console.log(`Comparing note: placeId=${note.placeId} with dest.googlePlaceId=${dest.googlePlaceId}, dest.id=${dest.id}`);
+                          return note.placeId === dest.googlePlaceId || note.placeId === dest?.id?.toString();
+                        });
+                        
+                        if (placeNote) {
+                          console.log(`Found note for ${dest.title}: ${placeNote.notes.substring(0, 20)}...`);
+                        }
+                        
                         return (
                           <div
                             key={dest.id || dest.googlePlaceId || `${groupIndex}-${destIndex}`}
@@ -280,32 +338,57 @@ export default function JournalDetailPage() {
                               <h4 className="text-lg font-semibold text-indigo-600 text-left">
                                 {dest.title}
                               </h4>
-                              {/*Photo on Left, Fav Moment on Right */}
-                              <div className="flex items-center justify-between space-x-4">
-                                {/* Left: Destination Photo */}
-                                <div className="flex-shrink-0">
-                                  <img
-                                    src={dest.photoUrl || "/images/fallback.jpeg"}
-                                    alt={dest.title}
-                                    className="w-32 h-32 rounded-full shadow-md object-cover border-4 border-white"
-                                  />
+                              
+                              {/* Place Notes */}
+                              {placeNote && (
+                                <div className="mb-4 bg-indigo-50 p-4 rounded-lg">
+                                  <h5 className="text-md font-medium text-indigo-600 mb-2">Notes</h5>
+                                  <p className="text-gray-700">
+                                    {placeNote.notes}
+                                  </p>
                                 </div>
-                                {/* Right: Fav Moment */}
-                                <div className="flex-shrink-0">
-                                  <label className="block text-gray-700 mb-2 font-medium text-center">
-                                    Favorite Moment
-                                  </label>
-                                  {attachment ? (
+                              )}
+                              
+                              {/* Photos */}
+                              <div className="mb-4">
+                                <h5 className="text-md font-medium text-indigo-600 mb-2">Photos</h5>
+                                <div className="flex flex-wrap gap-2">
+                                  {/* Default place photo */}
+                                  <div className="flex-shrink-0">
                                     <img
-                                      src={attachment.url}
-                                      alt="Favorite moment"
-                                      className="w-32 h-32 object-cover rounded-lg shadow-lg border border-indigo-300 transition-transform duration-200 hover:scale-105 cursor-pointer"
-                                      onClick={() => handlePhotoClick(attachment.url)} // click to view bigger photo
+                                      src={dest.photoUrl || "/images/fallback.jpeg"}
+                                      alt={dest.title}
+                                      className="w-24 h-24 rounded-lg shadow-md object-cover border-2 border-white cursor-pointer"
+                                      onClick={() => handlePhotoClick(dest.photoUrl || "/images/fallback.jpeg")}
                                     />
-                                  ) : (
-                                    <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-300">
-                                      <span className="text-gray-500 text-sm text-center">
-                                        No photo uploaded
+                                  </div>
+                                  
+                                  {/* Uploaded photos */}
+                                  {placeAttachments.length > 0 && placeAttachments
+                                    .sort((a, b) => (a.order || 0) - (b.order || 0))
+                                    .map((photo, photoIndex) => {
+                                      const photoUrl = photo.photoUrl ||  process.env.NEXT_API_URL +  photo.url;
+                                      console.log(`Rendering photo ${photoIndex} for ${dest.title}: ${photoUrl}`);
+                                      return (
+                                        <div key={photoIndex} className="flex-shrink-0">
+                                          <img
+                                            src={photoUrl}
+                                            alt={`Photo ${photoIndex + 1} of ${dest.title}`}
+                                            className="w-24 h-24 object-cover rounded-lg shadow-lg border border-indigo-300 transition-transform duration-200 hover:scale-105 cursor-pointer"
+                                            onClick={() => handlePhotoClick(photoUrl)}
+                                            // onError={(e) => {
+                                            //   console.error(`Error loading image: ${photoUrl}`);
+                                            //   e.target.src = "/images/fallback.jpeg";
+                                            // }}
+                                          />
+                                        </div>
+                                      );
+                                    })}
+                                    
+                                  {placeAttachments.length === 0 && (
+                                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-300">
+                                      <span className="text-gray-500 text-xs text-center p-2">
+                                        No additional photos
                                       </span>
                                     </div>
                                   )}

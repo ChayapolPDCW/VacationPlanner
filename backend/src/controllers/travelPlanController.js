@@ -32,6 +32,8 @@ function formatTravelPlans(travelPlans) {
       },
     };
   });
+  
+  return formattedTravelPlans;
 }
 
 //create travel plan
@@ -102,38 +104,71 @@ export const createTravelPlan = async (req, res) => {
 
     const addedDestinationIdList = [];
 
-    itinerary.map((day) => {
+    // ใช้ Promise.all เพื่อรอให้การทำงานทั้งหมดเสร็จสิ้น
+    const createDestinationsPromises = [];
+    
+    // วนลูปแต่ละวัน
+    for (const day of itinerary) {
       console.log("Processing day:", day);
-
-      day.places.map(async (place, placeIndex) => {
+      
+      // วนลูปแต่ละสถานที่ในวันนั้น
+      for (let placeIndex = 0; placeIndex < day.places.length; placeIndex++) {
+        const place = day.places[placeIndex];
         console.log(`Processing the #${placeIndex} place:`, place);
-
-        const newTravelPlanDestination =
-          await prisma.travelPlanDestination.create({
-            data: {
-              travelPlanId: newTravelPlan.id,
-              title: place.title,
-              latitude: place.latitude,
-              longitude: place.longitude,
-              photoUrl: place.photoUrl,
-              googlePlaceId: place.googlePlaceId,
-              startDate: new Date(day.startDate), // EDIT
-              dailyVisitOrder: placeIndex,
-            },
-          });
-
-        if (!newTravelPlanDestination) {
-          await prisma.travelPlanDestination.deleteMany({
-            where: {
-              id: { in: addedDestinationIdList },
-            },
-          });
-        } else {
-          console.log("New destination added: ", newTravelPlanDestination.id);
-          addedDestinationIdList.push(newTravelPlanDestination.id);
-        }
-      });
-    });
+        
+        // สร้าง Promise สำหรับการสร้างสถานที่และ notes
+        const createDestinationPromise = async () => {
+          try {
+            // สร้างสถานที่
+            const newTravelPlanDestination = await prisma.travelPlanDestination.create({
+              data: {
+                travelPlanId: newTravelPlan.id,
+                title: place.title,
+                latitude: place.latitude,
+                longitude: place.longitude,
+                photoUrl: place.photoUrl,
+                googlePlaceId: place.googlePlaceId,
+                startDate: new Date(day.startDate),
+                dailyVisitOrder: placeIndex,
+              },
+            });
+            
+            console.log("New destination added: ", newTravelPlanDestination.id);
+            addedDestinationIdList.push(newTravelPlanDestination.id);
+            
+            // เพิ่ม place note ถ้ามี
+            if (place.notes) {
+              await prisma.placeNote.create({
+                data: {
+                  travelPlanId: newTravelPlan.id,
+                  placeId: place.googlePlaceId,
+                  notes: place.notes
+                }
+              });
+              console.log(`Added notes for place: ${place.title}`);
+            }
+            
+            return newTravelPlanDestination;
+          } catch (error) {
+            console.error(`Error creating destination: ${error.message}`);
+            // ถ้าเกิดข้อผิดพลาด ให้ลบสถานที่ที่สร้างไปแล้ว
+            if (addedDestinationIdList.length > 0) {
+              await prisma.travelPlanDestination.deleteMany({
+                where: {
+                  id: { in: addedDestinationIdList },
+                },
+              });
+            }
+            throw error;
+          }
+        };
+        
+        createDestinationsPromises.push(createDestinationPromise());
+      }
+    }
+    
+    // รอให้การสร้างสถานที่และ notes ทั้งหมดเสร็จสิ้น
+    await Promise.all(createDestinationsPromises);
 
     return res.status(201).json({
       status: "success",
@@ -196,37 +231,15 @@ export const getAllTravelPlans = async (req, res) => {
       },
     });
 
-    // const formattedTravelPlans = formatTravelPlans(travelPlans);
-    const formattedTravelPlans = travelPlans.map((plan) => {
-      // ดึงรูปภาพจาก destination แรก (ถ้ามี)
-      let photoUrl = null;
-      if (
-        plan.destinations &&
-        plan.destinations.length > 0 &&
-        plan.destinations[0].photoUrl
-      ) {
-        photoUrl = plan.destinations[0].photoUrl;
-      }
-
-      plan.likedByUsers = plan.likedByUsers.map(user => user.userId);
-
-      return {
-        id: plan.id,
-        title: plan.title,
-        cityTitle: plan.cityTitle,
-        startDate: plan.startDate,
-        endDate: plan.endDate,
-        visibility: plan.visibility,
-        totalLike: plan.likedByUsers.length, // นับจำนวนไลค์
-        likedByUsers: plan.likedByUsers,
-        bookmarkedByUsers: plan.bookmarkedByUsers,
-        photoUrl: photoUrl, // เพิ่ม photoUrl
-        user: {
-          id: plan.user.id,
-          username: plan.user.username,
-        },
-      };
+    // แปลง likedByUsers เป็นรูปแบบที่ต้องการก่อนส่งไปยังฟังก์ชัน formatTravelPlans
+    const plansWithFormattedLikes = travelPlans.map(plan => {
+      const formattedPlan = {...plan};
+      formattedPlan.likedByUsers = plan.likedByUsers.map(user => user.userId);
+      return formattedPlan;
     });
+    
+    // ใช้ฟังก์ชัน formatTravelPlans ที่มีอยู่แล้ว
+    const formattedTravelPlans = formatTravelPlans(plansWithFormattedLikes);
 
     res.status(200).json({
       status: "success",
@@ -256,6 +269,7 @@ export const getTravelPlanById = async (req, res) => {
           select: {
             id: true,
             username: true,
+            avatarUrl: true, // เพิ่ม avatarUrl เพื่อแสดงรูปโปรไฟล์ของผู้ใช้
           },
         },
         likedByUsers: {
@@ -268,14 +282,16 @@ export const getTravelPlanById = async (req, res) => {
             userId: true,
           },
         },
-        destinations: true,
-        // destinations: {
-        //   select: {
-        //     id: true,
-        //     photoUrl: true,
-        //   },
-        // take: 1, // เอาแค่ destination แรก
-        // },
+        destinations: {
+          include: {
+            attachments: true, // เพิ่มการดึงข้อมูลรูปภาพเพิ่มเติมของแต่ละสถานที่
+          },
+          orderBy: [
+            { startDate: 'asc' },
+            { dailyVisitOrder: 'asc' }
+          ],
+        },
+        placeNotes: true,
       },
     });
 
@@ -334,9 +350,11 @@ export const getTravelPlanById = async (req, res) => {
       likedByUsers: travelPlan.likedByUsers,
       bookmarkedByUsers: travelPlan.bookmarkedByUsers,
       photoUrl: photoUrl, // เพิ่ม photoUrl
+      placeNotes: travelPlan.placeNotes, // เพิ่มข้อมูล placeNotes เพื่อส่งกลับไปยัง Frontend
       user: {
         id: travelPlan.user.id,
         username: travelPlan.user.username,
+        avatarUrl: travelPlan.user.avatarUrl, // เพิ่ม avatarUrl ของผู้ใช้
       },
     };
 
@@ -497,10 +515,133 @@ export const deleteTravelPlan = async (req, res) => {
 
 export const createJournal = async (req, res) => {
   try {
-    const { notes, futureTip, favNotes, rating, photoAttachments } = req.body;
+    console.log("Received journal creation request");
+    
+    // ตรวจสอบว่ามีการส่งข้อมูลมาในรูปแบบ FormData หรือ JSON
+    let notes, futureTip, favNotes, rating, photoAttachments, placeNotes;
+    
+    // ดึงข้อมูลจาก request body
+    notes = req.body.notes;
+    futureTip = req.body.futureTip;
+    favNotes = req.body.favNotes;
+    rating = req.body.rating;
+    
+    // ตรวจสอบว่ามีการส่ง placeNotes มาหรือไม่
+    if (req.body.placeNotes) {
+      // ถ้าส่งมาเป็น string (JSON) ให้แปลงเป็น object
+      if (typeof req.body.placeNotes === 'string') {
+        try {
+          placeNotes = JSON.parse(req.body.placeNotes);
+        } catch (error) {
+          console.error("Error parsing placeNotes JSON:", error);
+          placeNotes = [];
+        }
+      } else {
+        placeNotes = req.body.placeNotes;
+      }
+    } else {
+      placeNotes = [];
+    }
+    let photoMetadata = [];
+    if (req.body.photoMetadata) {
+      try {
+        photoMetadata = JSON.parse(req.body.photoMetadata);
+        console.log("Received photo metadata:", photoMetadata);
+      } catch (error) {
+        console.error("Error parsing photoMetadata JSON:", error);
+      }
+    }
+    
+
+    photoAttachments = [];
+    if (req.files && req.files.length > 0) {
+      console.log(`Received ${req.files.length} files:`, req.files.map(f => f.originalname).join(', '));
+      
+      // ตรวจสอบว่ามี metadata หรือไม่
+      if (photoMetadata.length > 0) {
+        // ถ้ามี metadata ให้ใช้ข้อมูลจาก metadata
+        req.files.forEach((file, index) => {
+          // หา metadata ที่ตรงกับ index ของไฟล์
+          // ใช้ fileIndex ที่ส่งมาจาก frontend หรือใช้ index ปัจจุบันถ้าไม่พบ
+          const metadata = photoMetadata.find(m => m.fileIndex === index) || photoMetadata[index];
+          
+          if (metadata) {
+            // สร้าง URL สำหรับไฟล์
+            const fileName = file.filename || `${Date.now()}_${index}_${file.originalname}`;
+            const filePath = `/uploads/images/${fileName}`;
+            
+            console.log(`Processing file ${index}: ${fileName} for placeId: ${metadata.placeId}`);
+            
+            photoAttachments.push({
+              placeId: metadata.placeId,
+              photoUrl: filePath,
+              order: metadata.order || index
+            });
+          } else {
+            console.warn(`No metadata found for file at index ${index}`);
+            // ถ้าไม่พบ metadata แต่มี destination ให้ใช้ destination แรก
+            if (travelPlan && travelPlan.destinations && travelPlan.destinations.length > 0) {
+              const firstDestination = travelPlan.destinations[0];
+              const fileName = file.filename || `${Date.now()}_${index}_${file.originalname}`;
+              const filePath = `/uploads/images/${fileName}`;
+              
+              photoAttachments.push({
+                placeId: firstDestination.id,
+                photoUrl: filePath,
+                order: index
+              });
+            }
+          }
+        });
+      } else {
+        // ถ้าไม่มี metadata ให้ใช้ข้อมูลจาก travelPlan
+        if (travelPlan && travelPlan.destinations && travelPlan.destinations.length > 0) {
+          // ใช้ destination แรกเป็นค่าเริ่มต้น
+          const firstDestination = travelPlan.destinations[0];
+          
+          req.files.forEach((file, index) => {
+            // ใช้ชื่อไฟล์ที่ multer กำหนดหรือสร้างชื่อไฟล์ใหม่
+            const fileName = file.filename || `${Date.now()}_${index}_${file.originalname}`;
+            const filePath = `/uploads/images/${fileName}`;
+            
+            console.log(`Processing file ${index}: ${fileName} for default placeId: ${firstDestination.id}`);
+            
+            photoAttachments.push({
+              placeId: firstDestination.id,
+              photoUrl: filePath,
+              order: index
+            });
+          });
+        } else {
+          console.warn("No destinations found in travel plan for attaching photos");
+        }
+      }
+    } else if (req.body.photoAttachments) {
+  
+      if (typeof req.body.photoAttachments === 'string') {
+        try {
+          photoAttachments = JSON.parse(req.body.photoAttachments);
+        } catch (error) {
+          console.error("Error parsing photoAttachments JSON:", error);
+          photoAttachments = [];
+        }
+      } else {
+        photoAttachments = req.body.photoAttachments;
+      }
+    }
+    
+    console.log("Processed request data:", { 
+      notes, 
+      futureTip, 
+      favNotes, 
+      rating,
+      placeNotesCount: placeNotes.length,
+      photoAttachmentsCount: photoAttachments.length
+    });
+    
     const travelPlanId = req.params.id;
 
-    // ตรวจสอบว่ามี session หรือไม่
+
     const userId = req.session.user?.id;
     if (!userId) {
       return res.status(401).json({
@@ -509,13 +650,13 @@ export const createJournal = async (req, res) => {
       });
     }
 
-    // ตรวจสอบว่า travel plan ที่ระบุมีอยู่จริงหรือไม่
+    
     const travelPlan = await prisma.travelPlan.findUnique({
       where: {
         id: parseInt(travelPlanId),
       },
       include: {
-        destinations: true, // รวมข้อมูล destinations เพื่อใช้ในการเชื่อมโยงกับรูปภาพ
+        destinations: true,
       },
     });
 
@@ -587,25 +728,74 @@ export const createJournal = async (req, res) => {
       },
     });
 
+    if (placeNotes && Array.isArray(placeNotes) && placeNotes.length > 0) {
+      const placeNotesToCreate = [];
+      
+      for (const note of placeNotes) {
+        if (note.placeId && note.notes && note.notes.trim() !== "") {
+          placeNotesToCreate.push({
+            journalId: journal.id,
+            placeId: note.placeId.toString(),
+            notes: note.notes
+          });
+        }
+      }
+      
+      if (placeNotesToCreate.length > 0) {
+        await prisma.journalPlaceNote.createMany({
+          data: placeNotesToCreate
+        });
+      }
+    }
+
     // บันทึกรูปภาพลงใน TravelPlanDestinationAttachment
     if (
       photoAttachments &&
       Array.isArray(photoAttachments) &&
       photoAttachments.length > 0
     ) {
+      console.log("Processing photo attachments:", JSON.stringify(photoAttachments));
+      
       // สร้าง array สำหรับเก็บข้อมูลที่จะบันทึกลงใน TravelPlanDestinationAttachment
       const attachmentsToCreate = [];
 
       // วนลูปผ่านรูปภาพที่ส่งมา
       for (const attachment of photoAttachments) {
+        console.log("Processing attachment:", JSON.stringify(attachment));
+        
+        if (!attachment.placeId) {
+          console.error("Missing placeId in attachment");
+          continue;
+        }
+        
+        if (!attachment.photoUrl) {
+          console.error("Missing photoUrl in attachment");
+          continue;
+        }
+        
+        // แสดงข้อมูล destinations ทั้งหมดเพื่อการตรวจสอบ
+        console.log("Available destinations:", JSON.stringify(travelPlan.destinations.map(d => ({ 
+          id: d.id, 
+          googlePlaceId: d.googlePlaceId,
+          title: d.title 
+        }))));
+        
         // หา destination ID จาก placeId ที่ส่งมา
+        const placeIdStr = attachment.placeId.toString();
+        console.log("Looking for destination with placeId:", placeIdStr);
+        
         const destination = travelPlan.destinations.find(
-          (dest) =>
-            dest.id === attachment.placeId ||
-            dest.googlePlaceId === attachment.placeId.toString()
+          (dest) => {
+            const destId = dest.id;
+            const googleId = dest.googlePlaceId;
+            console.log(`Comparing: dest.id=${destId}, dest.googlePlaceId=${googleId} with attachment.placeId=${placeIdStr}`);
+            return destId == placeIdStr || googleId === placeIdStr;
+          }
         );
 
         if (destination) {
+          console.log("Found matching destination:", destination.id, destination.title);
+          
           // ตรวจสอบว่ามี attachment สำหรับ destination นี้อยู่แล้วหรือไม่
           const existingAttachmentCount =
             await prisma.travelPlanDestinationAttachment.count({
@@ -614,26 +804,68 @@ export const createJournal = async (req, res) => {
               },
             });
 
-          // สร้างข้อมูลสำหรับบันทึกลงใน TravelPlanDestinationAttachment
+          console.log(`Existing attachment count for destination ${destination.id}: ${existingAttachmentCount}`);
+
+          const order = attachment.order !== undefined ? 
+            attachment.order : 
+            existingAttachmentCount + 1;
+
           attachmentsToCreate.push({
             travelPlanDestinationId: destination.id,
             url: attachment.photoUrl,
-            order: existingAttachmentCount + 1, // กำหนด order เป็นลำดับถัดไป
+            order: order
           });
+          
+          console.log("Added to attachmentsToCreate:", {
+            travelPlanDestinationId: destination.id,
+            url: attachment.photoUrl,
+            order: order
+          });
+        } else {
+          console.error(`No matching destination found for placeId: ${placeIdStr}`);
         }
       }
 
-      // บันทึกข้อมูลลงใน TravelPlanDestinationAttachment
       if (attachmentsToCreate.length > 0) {
+        console.log("Creating attachments:", JSON.stringify(attachmentsToCreate));
         await prisma.travelPlanDestinationAttachment.createMany({
           data: attachmentsToCreate,
         });
+        console.log("Successfully created attachments");
+      } else {
+        console.warn("No attachments to create after processing");
       }
+    } else {
+      console.log("No photo attachments provided or invalid format");
     }
+
+    // ดึงข้อมูล journal ที่สร้างพร้อมกับ place notes และ attachments
+    const createdJournal = await prisma.travelPlanJournal.findUnique({
+      where: {
+        id: journal.id
+      },
+      include: {
+        placeNotes: true,
+        travelPlan: {
+          include: {
+            destinations: {
+              include: {
+                attachments: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log("Returning journal with data:", JSON.stringify({
+      id: createdJournal.id,
+      placeNotesCount: createdJournal.placeNotes?.length || 0
+    }));
 
     res.status(200).json({
       status: "success",
-      data: journal,
+      data: createdJournal,
     });
   } catch (error) {
     console.error("Create journal error:", error);
@@ -709,28 +941,80 @@ export const getJournalsByID = async (req, res) => {
       });
     }
 
-    const journals = await prisma.travelPlanJournal.findUnique({
+    const journal = await prisma.travelPlanJournal.findUnique({
       where: {
         id: journalId,
       },
-      select: {
-        id: true,
-        notes: true,
-        futureTip: true,
-        favNotes: true,
-        rating: true,
-        createdAt: true,
-      },
+      include: {
+        placeNotes: true,
+        travelPlan: {
+          include: {
+            destinations: {
+              include: {
+                attachments: true
+              }
+            }
+          }
+        }
+      }
     });
+    
+    if (!journal) {
+      return res.status(404).json({
+        status: "error",
+        message: "Journal not found",
+      });
+    }
+    
+    console.log(`Returning journal with ID ${journalId} with ${journal.placeNotes?.length || 0} place notes`);
+    
     res.status(200).json({
       status: "success",
-      data: journals,
+      data: journal,
     });
   } catch (error) {
     console.error("Get journals error:", error);
     res.status(500).json({
       status: "error",
       message: "Failed to get journal by ID",
+    });
+  }
+};
+
+// ตรวจสอบว่าแผนมี Journal อยู่แล้วหรือไม่
+export const checkJournalExists = async (req, res) => {
+  try {
+    const travelPlanId = parseInt(req.params.id);
+
+    if (!travelPlanId || isNaN(travelPlanId)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid travel plan ID",
+      });
+    }
+
+    // ตรวจสอบว่ามี Journal สำหรับแผนนี้หรือไม่
+    const journal = await prisma.travelPlanJournal.findUnique({
+      where: {
+        travelPlanId: travelPlanId,
+      },
+      select: {
+        id: true,
+        rating: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      exists: !!journal,
+      journalId: journal ? journal.id : null,
+    });
+  } catch (error) {
+    console.error("Check journal exists error:", error);
+    res.status(500).json({
+      status: "error",
+      message: "Failed to check journal existence",
     });
   }
 };
@@ -790,9 +1074,33 @@ export const updateJournal = async (req, res) => {
       data: updateData,
     });
 
+    // ดึงข้อมูล journal ที่สร้างพร้อมกับ place notes และ attachments
+    const createdJournal = await prisma.travelPlanJournal.findUnique({
+      where: {
+        id: journal.id
+      },
+      include: {
+        placeNotes: true,
+        travelPlan: {
+          include: {
+            destinations: {
+              include: {
+                attachments: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    console.log("Returning journal with data:", JSON.stringify({
+      id: createdJournal.id,
+      placeNotesCount: createdJournal.placeNotes?.length || 0
+    }));
+
     res.status(200).json({
       status: "success",
-      data: journal,
+      data: createdJournal,
     });
   } catch (error) {
     console.error("Update journal error:", error);

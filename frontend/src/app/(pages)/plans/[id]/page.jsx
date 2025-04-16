@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState, useEffect, useCallback } from "react";
+import { useContext, useState, useEffect, useCallback ,useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -146,15 +146,7 @@ const MapComponent = dynamic(() => import("@/components/MapComponent"), {
 //   },
 // ];
 
-// Mock journals to check if a plan has a journal
-const mockJournals = [
-  {
-    id: 1,
-    planId: 112,
-    userId: 153,
-  },
-  // Plan 2 has no journal
-];
+// ไม่ใช้ mock journals อีกต่อไป เพราะเราจะเรียกใช้ API จริง
 
 // Mock current user (simulating authentication)
 // const mockCurrentUser = { id: 1, username: "user1" }; // Change this to test different users
@@ -178,6 +170,8 @@ export default function PlanDetail() {
   const [directions, setDirections] = useState({});
   const [activeDayIndex, setActiveDayIndex] = useState(null);
   const [isClient, setIsClient] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [showPlaceModal, setShowPlaceModal] = useState(false);
 
   const dayColors = [
     "#FF0000",
@@ -207,23 +201,50 @@ export default function PlanDetail() {
 
         const responseJson = await response.json();
         const currentSelectedPlan = responseJson.data;
-        console.log("currentSelectedPlan:", responseJson);
+        
+        // ประมวลผลข้อมูล notes ก่อนที่จะเรียก setPlan เพื่อไม่ให้ข้อมูลหายไป
+        if (currentSelectedPlan && currentSelectedPlan.placeNotes && currentSelectedPlan.placeNotes.length > 0 && currentSelectedPlan.itinerary) {
+          const placeNotesMap = {};
+          currentSelectedPlan.placeNotes.forEach(note => {
+            placeNotesMap[note.placeId] = note.notes;
+          });
+          
+          const updatedItinerary = currentSelectedPlan.itinerary.map(day => {
+            const updatedPlaces = day.places.map(place => {
+              const placeNote = placeNotesMap[place.googlePlaceId] || "";
+              return {
+                ...place,
+                notes: placeNote
+              };
+            });
+            return {
+              ...day,
+              places: updatedPlaces
+            };
+          });
+          
+          currentSelectedPlan.itinerary = updatedItinerary;
+        }
+        
         setPlan(currentSelectedPlan);
-        // setSelectedPlan(currentSelectedPlan);
       } catch (error) {
         console.error(error.message);
         setError("Error getting plan information");
       }
     };
     fetchPlanData();
-    console.log("selectedPlan: ", plan);
   }, []);
 
+  // useEffect แยกสำหรับการตรวจสอบ Journal เพื่อให้ทำงานแค่ครั้งเดียว
   useEffect(() => {
-    console.log("selectedPlan:: ", plan);
+    if (planId) {
+      checkJournalExists(planId);
+    }
+  }, [planId]);
 
+  // ใช้ useEffect สำหรับการตรวจสอบข้อมูลเพิ่มเติมหลังจากได้รับข้อมูล plan
+  useEffect(() => {
     if (plan) {
-      setPlan(plan);
 
       if (plan.likedByUsers && plan.likedByUsers.includes(user.id)) {
         setLiked(true);
@@ -238,19 +259,41 @@ export default function PlanDetail() {
       // Check if the current user is the owner
       const owner = user && plan.user.id === user.id;
 
-      if (owner)
+      if (owner) {
         setIsOwner(true);
-
-      // Check if the plan has a journal
-      const journalExists = mockJournals.some((j) => j.planId === planId);
-      setHasJournal(journalExists);
-
-      // Initialize directions
-      if (isMapLoaded && plan.itinerary) {
-        updateDirections(plan.itinerary);
       }
     }
-  }, [plan, isMapLoaded]);
+  }, [plan, user]);
+  
+
+  
+  // แยก useEffect สำหรับการอัปเดต directions
+  useEffect(() => {
+    // Initialize directions
+    if (isMapLoaded && plan && plan.itinerary) {
+      updateDirections(plan.itinerary);
+    }
+  }, [isMapLoaded, plan]);
+
+  // ตรวจสอบว่ามี Journal สำหรับแผนนี้หรือไม่
+  const checkJournalExists = async (planId) => {
+    try {
+      const response = await axios.get(`/api/plans/${planId}/journal/check`, {
+        withCredentials: true,
+      });
+      
+      if (response.data.status === "success") {
+        console.log("Journal check result:", response.data);
+        setHasJournal(response.data.exists);
+      } else {
+        console.error("Error checking journal existence:", response.data.message);
+        setHasJournal(false);
+      }
+    } catch (error) {
+      console.error("Error checking journal existence:", error);
+      setHasJournal(false);
+    }
+  };
 
   const updateDirections = useCallback((itinerary) => {
     if (typeof window === "undefined" || !window.google) return;
@@ -450,9 +493,16 @@ export default function PlanDetail() {
                           day.places.map((place, placeIndex) => (
                             <div
                               key={`${index}-${placeIndex}`}
-                              className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
+                              className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                              onClick={() => {
+                                setSelectedPlace(place);
+                                setShowPlaceModal(true);
+                              }}
                             >
-                              <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
+                              <div 
+                                className="flex items-center justify-center w-8 h-8 text-white rounded-full mr-4"
+                                style={{ backgroundColor: dayColors[index % dayColors.length] }}
+                              >
                                 {placeIndex + 1}
                               </div>
                               <img
@@ -460,7 +510,7 @@ export default function PlanDetail() {
                                 alt={place.title}
                                 className="w-24 h-24 rounded-lg mr-4"
                                 onError={(e) => {
-                                  e.target.src = "/images/fallback.jpeg";
+                                  e.target.src = "/images/fallback.png";
                                 }}
                               />
                               <div className="flex-1">
@@ -471,6 +521,14 @@ export default function PlanDetail() {
                                   Travel Time to Next Location:{" "}
                                   {place.travelTime}
                                 </p>
+                                {place.notes && (
+                                  <div className="mt-2 bg-indigo-50 p-3 rounded-md border border-indigo-100">
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                      <span className="font-medium text-indigo-600">Notes: </span>
+                                      {place.notes}
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))
@@ -532,30 +590,57 @@ export default function PlanDetail() {
                           }`}
                         />
                       </button>
+                      
+                      {/* Duplicate Plan Button */}
+                      <a 
+                        href={`/plans/duplicate/${plan.id}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="ml-2 py-2 px-4 rounded-full border shadow-md bg-green-500 text-white hover:bg-green-600 transition-colors duration-200 text-sm flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Duplicate
+                      </a>
                     </div>
                   )}
 
                   {/* Journal Buttons */}
                   <div className="mt-2">
-                    {isOwner
-                      ? !hasJournal && (
-                          <Link href={`/plans/${plan.id}/journal/create`}>
-                            <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                              Journal this Trip
-                            </button>
-                          </Link>
-                        )
-                      : hasJournal && (
-                          <Link
-                            href={`/journal/${
-                              mockJournals.find((j) => j.planId === planId)?.id
-                            }`}
-                          >
-                            <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
-                              Read this plan journal
-                            </button>
-                          </Link>
-                        )}
+                    {isOwner ? (
+                      /* เจ้าของแผน */
+                      hasJournal ? (
+                        /* มี Journal แล้ว */
+                        <Link href={`/plans/${plan.id}/journal`}>
+                          <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                            View Journal
+                          </button>
+                        </Link>
+                      ) : (
+                        /* ยังไม่มี Journal */
+                        <Link href={`/plans/${plan.id}/journal/create`}>
+                          <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                            Create Journal
+                          </button>
+                        </Link>
+                      )
+                    ) : (
+                      /* ไม่ใช่เจ้าของแผน */
+                      hasJournal ? (
+                        /* มี Journal แล้ว */
+                        <Link href={`/plans/${plan.id}/journal`}>
+                          <button className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                            View Journal
+                          </button>
+                        </Link>
+                      ) : (
+                        /* ยังไม่มี Journal */
+                        <div className="w-full text-center py-3 text-gray-500">
+                          This Plan does not have journal
+                        </div>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -638,6 +723,8 @@ export default function PlanDetail() {
             </div>
           </div>
         </div>
+
+        
       ) : (
         <div className="flex h-screen items-center justify-center">
           <div className="text-2xl text-indigo-600 font-semibold">
@@ -646,5 +733,6 @@ export default function PlanDetail() {
         </div>
       )}
     </div>
+
   );
 }

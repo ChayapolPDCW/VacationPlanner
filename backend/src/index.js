@@ -6,6 +6,7 @@ import "./config/env.js";
 
 import cors from "cors";
 import express from "express";
+import path from "path";
 import router from "./routes/router.js";
 import session from "./middlewares/session.js";
 
@@ -46,7 +47,18 @@ app.use(session);
 //        |--> ./routes/router.js                 router.use("/users", users);
 //             |--> ./routes/users.js             router.get("/", <handler>);
 app.use("/api", router);
-app.use("/uploads", express.static(process.env.STORAGE_UPLOADS));
+
+
+// ตั้งค่า static file serving สำหรับไฟล์ที่อัปโหลด
+app.use("/uploads", express.static("uploads"));
+
+// เพิ่ม static file serving สำหรับรูปภาพโปรไฟล์
+app.use("/avatars", express.static("uploads/avatars"));
+
+// แสดงข้อมูลเส้นทางที่ใช้เพื่อช่วยในการแก้ไขปัญหา
+console.log("Static paths:");
+console.log("- /uploads -> ", path.resolve(process.cwd(), "uploads"));
+console.log("- /avatars -> ", path.resolve(process.cwd(), "uploads/avatars"));
 
 // Start the server
 app.listen(port, () => {

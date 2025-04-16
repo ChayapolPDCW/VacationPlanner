@@ -14,7 +14,7 @@ export default function CreateJournalPage() {
   const [formData, setFormData] = useState({
     rating: 0,
     notes: "",
-    itineraryPhotos: [],
+    itineraryPhotos: [], // จะเปลี่ยนเป็นอาร์เรย์ของออบเจ็กต์ที่มีรูปภาพหลายรูปและ notes สำหรับแต่ละสถานที่
     favNotes: "",
     futureTip: "",
   });
@@ -49,7 +49,8 @@ export default function CreateJournalPage() {
             selectedPlan.destinations = allDestinations;
             
             const initialItineraryPhotos = allDestinations.map(() => ({
-              photo: null,
+              photos: [], // เปลี่ยนจาก photo เดี่ยวเป็นอาร์เรย์ของรูปภาพ
+              notes: "", // เพิ่ม notes สำหรับแต่ละสถานที่
             }));
             setFormData((prev) => ({
               ...prev,
@@ -117,14 +118,33 @@ export default function CreateJournalPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle photo upload
+  // Handle photo upload - แก้ไขให้รองรับการอัปโหลดรูปภาพหลายรูป
   const handlePhotoUpload = (destIndex, e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
       const updatedItineraryPhotos = [...formData.itineraryPhotos];
-      updatedItineraryPhotos[destIndex].photo = file;
+
+      updatedItineraryPhotos[destIndex].photos = [
+        ...updatedItineraryPhotos[destIndex].photos,
+        ...files
+      ];
       setFormData((prev) => ({ ...prev, itineraryPhotos: updatedItineraryPhotos }));
     }
+  };
+  
+  // เพิ่มฟังก์ชันใหม่สำหรับจัดการ notes ของแต่ละสถานที่
+  const handlePlaceNotesChange = (destIndex, e) => {
+    const { value } = e.target;
+    const updatedItineraryPhotos = [...formData.itineraryPhotos];
+    updatedItineraryPhotos[destIndex].notes = value;
+    setFormData((prev) => ({ ...prev, itineraryPhotos: updatedItineraryPhotos }));
+  };
+  
+  // เพิ่มฟังก์ชันใหม่สำหรับลบรูปภาพ
+  const handleRemovePhoto = (destIndex, photoIndex) => {
+    const updatedItineraryPhotos = [...formData.itineraryPhotos];
+    updatedItineraryPhotos[destIndex].photos.splice(photoIndex, 1);
+    setFormData((prev) => ({ ...prev, itineraryPhotos: updatedItineraryPhotos }));
   };
 
   // Handle form submission
@@ -143,17 +163,14 @@ export default function CreateJournalPage() {
         rating: formData.rating,
         photoAttachments: []
       };
-      
-      // Add photo attachments if available
+            // Add photo attachments and notes if available
       if (formData.itineraryPhotos && formData.itineraryPhotos.length > 0) {
-        // Process photos for destinations that have photos
+        // Process photos and notes for destinations
         const photoAttachments = [];
+        const placeNotes = [];
         
         for (let i = 0; i < formData.itineraryPhotos.length; i++) {
           const photoItem = formData.itineraryPhotos[i];
-          
-          // Skip if no photo
-          if (!photoItem.photo) continue;
           
           // Get the destination for this photo
           if (i < plan.destinations.length) {
@@ -164,24 +181,79 @@ export default function CreateJournalPage() {
                           (destination.googlePlaceId ? destination.googlePlaceId.toString() : null);
             
             if (placeId) {
-              // In a real implementation, you would upload the photo to a server
-              // For now, we'll use a placeholder URL
-              photoAttachments.push({
-                placeId: placeId,
-                photoUrl: "https://example.com/placeholder.jpg" // Use a placeholder URL
-              });
+              // Process photos if available
+              if (photoItem.photos && photoItem.photos.length > 0) {
+                // ใช้รูปภาพจริงที่ผู้ใช้อัปโหลด
+                photoItem.photos.forEach((photo, photoIndex) => {
+                  // สร้าง URL สำหรับรูปภาพโดยใช้ URL.createObjectURL
+                  const photoUrl = URL.createObjectURL(photo);
+                  photoAttachments.push({
+                    placeId: placeId,
+                    photoUrl: photoUrl,
+                    file: photo, // เก็บไฟล์จริงเพื่อส่งไปยัง API
+                    order: photoIndex // Add order to maintain sequence
+                  });
+                });
+              }
+              
+              // Process notes if available
+              if (photoItem.notes && photoItem.notes.trim() !== "") {
+                placeNotes.push({
+                  placeId: placeId,
+                  notes: photoItem.notes
+                });
+              }
             }
           }
         }
         
         journalData.photoAttachments = photoAttachments;
+        journalData.placeNotes = placeNotes; // Add place notes to the journal data
       }
       
-      console.log("Submitting journal data:", journalData);
+      console.log("Preparing journal data for submission:", journalData);
       
-      // Send data to API
-      const response = await axios.post(`/api/journals/${id}`, journalData, {
+      // สร้าง FormData สำหรับส่งไฟล์
+      const formDataToSend = new FormData();
+      
+      // เพิ่มข้อมูลพื้นฐานลงใน FormData
+      formDataToSend.append('notes', journalData.notes);
+      formDataToSend.append('futureTip', journalData.futureTip);
+      formDataToSend.append('favNotes', journalData.favNotes);
+      formDataToSend.append('rating', journalData.rating);
+      
+      // เพิ่ม place notes ลงใน FormData
+      if (journalData.placeNotes && journalData.placeNotes.length > 0) {
+        formDataToSend.append('placeNotes', JSON.stringify(journalData.placeNotes));
+      }
+      
+      // เพิ่มรูปภาพลงใน FormData
+      if (journalData.photoAttachments && journalData.photoAttachments.length > 0) {
+        // สร้าง array เพื่อเก็บข้อมูลของรูปภาพโดยไม่รวมไฟล์
+        const photoMetadata = journalData.photoAttachments.map((item, index) => ({
+          placeId: item.placeId,
+          order: item.order,
+          fileIndex: index // อ้างอิงไปยังไฟล์ในลำดับที่  เท่ากัน
+        }));
+        
+        // เพิ่มข้อมูล metadata ของรูปภาพ
+        formDataToSend.append('photoMetadata', JSON.stringify(photoMetadata));
+        
+        // เพิ่มไฟล์รูปภาพแต่ละไฟล์
+        // ใช้ชื่อฟิลด์ 'photos' ตามที่กำหนดใน multer ที่ฝั่ง backend
+        journalData.photoAttachments.forEach((item) => {
+          formDataToSend.append('photos', item.file);
+        });
+      }
+      
+      console.log("Submitting journal data as FormData");
+      
+      // Send data to API with FormData
+      const response = await axios.post(`/api/journals/${id}`, formDataToSend, {
         withCredentials: true,
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
       
       if (response.data.status === "success") {
@@ -298,26 +370,58 @@ export default function CreateJournalPage() {
                                 Post your favorite moment here!
                               </label>
                               <label className="inline-block px-4 py-2 bg-white text-indigo-600 rounded-full cursor-pointer border border-indigo-400 shadow-md hover:bg-indigo-100 mb-2 transition-transform duration-200 transform hover:scale-110 active:scale-100">
-                                Upload Photo
+                                Upload Photos
                                 <input
                                   type="file"
                                   accept="image/*"
                                   onChange={(e) => handlePhotoUpload(dest.originalIndex, e)}
                                   className="hidden"
+                                  multiple
                                 />
                               </label>
                               <label className="block text-gray-600 mb-2 italic">
-                                (1 photo per location)
+                                (Upload multiple photos for this location)
                               </label>
-                              {formData.itineraryPhotos[dest.originalIndex]?.photo && (
+                              {formData.itineraryPhotos[dest.originalIndex]?.photos && 
+                               formData.itineraryPhotos[dest.originalIndex].photos.length > 0 && (
                                 <div className="mt-2">
-                                  <img
-                                    src={URL.createObjectURL(formData.itineraryPhotos[dest.originalIndex].photo)}
-                                    alt="Uploaded moment"
-                                    className="w-16 h-16 object-cover shadow-md rounded-lg"
-                                  />
+                                  <p className="text-gray-700 mb-2">
+                                    Uploaded Photos ({formData.itineraryPhotos[dest.originalIndex].photos.length}):
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {formData.itineraryPhotos[dest.originalIndex].photos.map((photo, photoIndex) => (
+                                      <div key={photoIndex} className="relative">
+                                        <img
+                                          src={URL.createObjectURL(photo)}
+                                          alt={`Uploaded moment ${photoIndex + 1}`}
+                                          className="w-16 h-16 object-cover shadow-md rounded-lg"
+                                        />
+                                        <button 
+                                          type="button"
+                                          onClick={() => handleRemovePhoto(dest.originalIndex, photoIndex)}
+                                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
+                              
+                              {/* เพิ่ม textarea สำหรับบันทึก notes ของแต่ละสถานที่ */}
+                              <div className="mt-4">
+                                <label className="block text-gray-700 mb-2">
+                                  Notes for this location:
+                                </label>
+                                <textarea
+                                  value={formData.itineraryPhotos[dest.originalIndex]?.notes || ""}
+                                  onChange={(e) => handlePlaceNotesChange(dest.originalIndex, e)}
+                                  placeholder="Write your experience, tips, or memories about this place..."
+                                  className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
+                                  rows="3"
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>

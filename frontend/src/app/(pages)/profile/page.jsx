@@ -4,66 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { FaPencilAlt } from "react-icons/fa";
+import axios from "axios";
 
 import Loading from "@/app/feed/loading";
 import Avatar from "@/components/Avatar";
 
 import { useUser } from "@/context/UserContext";
 
-// Mock data for user and plans (no journals needed since we're not displaying them)
-// const mockUser = {
-//   id: 1,
-//   username: "SamanthaJones",
-//   email: "samantha.jones@example.com",
-//   // password: "hashedpassword123",
-//   avatarUrl: "https://randomuser.me/api/portraits/women/44.jpg",
-//   createdAt: "2023-01-15T10:00:00Z",
-//   updatedAt: "2024-04-07T14:30:00Z",
-// };
-
-const mockPlans = [
-  {
-    id: 1,
-    title: "Summer in Bali",
-    city_title: "Bali, Indonesia",
-    likes: 25,
-    visibility: "public",
-  },
-  {
-    id: 2,
-    title: "Winter in Paris",
-    city_title: "Paris, France",
-    likes: 40,
-    visibility: "private",
-  },
-  {
-    id: 3,
-    title: "Spring in Tokyo",
-    city_title: "Tokyo, Japan",
-    likes: 15,
-    visibility: "public",
-  },
-];
-
-// Mock journals data (for stats only, not displayed)
-const mockJournals = [
-  {
-    id: 1,
-    planId: 1,
-    rating: 4,
-    overallMemories: "An unforgettable trip to Bali! The beaches were stunning.",
-    favoriteMoment: "Watching the sunset at Kuta Beach was magical.",
-    visibility: "public",
-  },
-  {
-    id: 2,
-    planId: 2,
-    rating: 5,
-    overallMemories: "Paris in winter was a dream come true.",
-    favoriteMoment: "Seeing the Eiffel Tower light up at night.",
-    visibility: "private",
-  },
-];
+// ไม่ใช้ข้อมูลจำลองอีกต่อไป เพราะเราจะดึงข้อมูลจริงจาก API
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -76,48 +24,56 @@ export default function ProfilePage() {
 
 
   useEffect(() => {
-    try {
-      // Simulate fetching data (replace with API calls later)
-      // setCurrentUser(user);
-
-      // console.log("LLL", `http://localhost:5000/api/plans?author_id=${user.id}`);
-
-      const getMyPlans = async () => {
-        const response = await fetch(`/api/plans?author_id=${user.id}`, {
+    if (!user || !user.id) {
+      return;
+    }
+    
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // ดึงข้อมูลแผนการเดินทาง
+        const plansResponse = await axios.get(`${process.env.NEXT_API_URL}/api/plans/user`, {
           withCredentials: true
         });
         
-        const responseJson = await response.json();
-        console.log("my plans: ", responseJson.data);
-
-        let plansData = responseJson.data;
-        setPlans(plansData);
-
-        const totalLikesCount = plansData.reduce((sum, plan) => sum + (plan.totalLike || 0), 0);
-        setTotalLikes(totalLikesCount);
-      };
-
-      getMyPlans();
-
-      setJournals(mockJournals);
-      setIsLoading(false);
-    } catch (e) {
-      console.error(e.message);
-    }
-
-  // Calculate total likes from plans
-  // setTotalLikes(plans.reduce((sum, plan) => sum + (plan.likes || 0), 0));
-}, [user]);
+        if (plansResponse.status === 200) {
+          const plansData = await plansResponse.data;
+          console.log("My plans:", plansData.data);
+          setPlans(plansData.data || []);
+          
+          // คำนวณจำนวนไลก์ทั้งหมด
+          const totalLikesCount = (plansData.data || []).reduce(
+            (sum, plan) => sum + (plan.totalLike || 0), 0
+          );
+          setTotalLikes(totalLikesCount);
+        }
+        
+        // ดึงข้อมูลบันทึกการเดินทาง
+        const journalsResponse = await axios.get(`${process.env.NEXT_API_URL}/api/journals/user`, {
+          withCredentials: true
+        });
+        
+        if (journalsResponse.status === 200) {
+          const journalsData = await journalsResponse.data;
+          console.log("My journals:", journalsData.data);
+          setJournals(journalsData.data || []);
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [user]);
 
 
   // Handle loading
   if (isLoading) {
-    <Loading />
-    // return (
-    //   <div className="flex h-screen items-center justify-center">
-    //     <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
-    //   </div>
-    // );
+    return <Loading />;
   }
 
   // Handle user data is not available
@@ -148,7 +104,7 @@ export default function ProfilePage() {
         <div className="bg-white rounded-lg shadow-md -mt-12 mx-4 p-6 relative">
           {/* Profile Picture */}
           <div className="flex justify-center -mt-16">
-            <Avatar src={user.avatarUrl ? `http://localhost:5000/uploads${user.avatarUrl}` : "/images/default-avatar.png"} alt={`${user.username}'s avatar`} className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
+            <Avatar src={user.avatarUrl ? `${process.env.NEXT_API_URL}/avatars/${user.avatarUrl}` : "/images/default-avatar.png"} alt={`${user.username}'s avatar`} className="w-32 h-32 rounded-full border-4 border-white shadow-md object-cover" />
           </div>
 
           {/* User Info */}

@@ -6,9 +6,11 @@ export const isAuthenticated = (req, res, next) => {
       status: "error",
       message: "Please log in",
     });
-
+    console.log("req.user is undefined", req.session);
     return;
   }
+
+  req.user = req.session.user;
 
   next();
 };

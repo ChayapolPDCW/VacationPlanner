@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import Image from "next/image";
+import axios from "axios";
+
+import { useUser } from "@/context/UserContext";
+import Loading from "@/app/feed/loading";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -23,33 +27,53 @@ export default function EditProfilePage() {
   const [newPassword, setNewPassword] = useState(""); // Store new password
   const [confirmPassword, setConfirmPassword] = useState(""); // Store confirm password
 
-  // Mock data (replace with API calls later)
+  const { user, setUser } = useUser();
+
+  // ดึงข้อมูลผู้ใช้จาก API
   useEffect(() => {
-    // Mock user data
-    const mockUser = {
-      id: 1,
-      username: "SamanthaJones",
-      email: "samantha.jones@example.com",
-      password: "hashedpassword123",
-      avatar: "",
-      created_at: "2023-01-15T10:00:00Z",
-      updated_at: "2024-04-07T14:30:00Z",
+    const fetchUserData = async () => {
+      if (!user || !user.id) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        // ดึงข้อมูลผู้ใช้จาก API
+        const response = await axios.get('/api/users/profile', {
+          withCredentials: true
+        });
+
+        if (response.data.status === 'success') {
+          const userData = response.data.data;
+          
+          // ตั้งค่าข้อมูลในฟอร์ม
+          setFormData({
+            username: userData.username,
+            email: userData.email,
+            password: '',  // ไม่แสดงรหัสผ่านเดิม
+            avatar: userData.avatarUrl || '',
+            created_at: userData.createdAt,
+            updated_at: userData.updatedAt,
+          });
+
+          // ตั้งค่ารูปภาพผู้ใช้
+          // ไม่ตั้งค่า avatarPreview เพื่อให้แสดงรูปภาพปัจจุบันจาก formData.avatar แทน
+          // if (userData.avatarUrl) {
+          //   setAvatarPreview(process.env.NEXT_API_URL + userData.avatarUrl);
+          // }
+        } else {
+          setError('Failed to load user data');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setError('Failed to load user data');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // Set the mock data into formData
-    setFormData({
-      username: mockUser.username,
-      email: mockUser.email,
-      password: mockUser.password,
-      avatar: mockUser.avatar,
-      created_at: mockUser.created_at,
-      updated_at: mockUser.updated_at,
-    });
-
-    // Set the initial avatar preview to the current avatar
-    setAvatarPreview(mockUser.avatar);
-    setIsLoading(false);
-  }, [router]);
+    fetchUserData();
+  }, [user, router]);
 
   // Handle input changes for editable fields (username)
   const handleChange = (e) => {
@@ -77,88 +101,98 @@ export default function EditProfilePage() {
     setError(""); // Clear any errors
   };
 
-  // Handle form submission (combined profile and password updates)
+  // ส่งข้อมูลไปยัง API เพื่อแก้ไขข้อมูลผู้ใช้
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
-    // Validate password if editing
-    if (isPasswordEditable) {
-      if (newPassword !== confirmPassword) {
-        setError("Passwords do not match.");
-        return;
+    try {
+      // ตรวจสอบรหัสผ่านหากมีการแก้ไข
+      if (isPasswordEditable) {
+        if (newPassword !== confirmPassword) {
+          setError("Passwords do not match.");
+          setIsLoading(false);
+          return;
+        }
+        if (newPassword.length < 8) {
+          setError("Password must be at least 8 characters long.");
+          setIsLoading(false);
+          return;
+        }
       }
-      if (newPassword.length < 8) {
-        setError("Password must be at least 8 characters long.");
-        return;
-      }
-    }
 
-    // Mock avatar upload logic
-    let avatarUrl = formData.avatar; // Default to existing avatar URL
-    if (avatarFile) {
-      // Simulate a successful upload
-      console.log("Mock uploading avatar file:", avatarFile.name);
-      avatarUrl = URL.createObjectURL(avatarFile); // Use the local URL for now
+      // อัปโหลดรูปภาพหากมีการเปลี่ยน
+      let avatarUrl = formData.avatar; // ใช้รูปภาพเดิมถ้าไม่มีการเปลี่ยน
+      
+      if (avatarFile) {
+        // สร้าง FormData สำหรับอัปโหลดไฟล์
+        const avatarFormData = new FormData();
+        avatarFormData.append("avatar", avatarFile);
 
-      // Replace this with a real API call to upload the avatar
-      /*
-      try {
-        const avatarFileUploadForm = new FormData();
-        avatarFileUploadForm.append("avatarFile", avatarFile);
-
-        const avatarFileUploadResponse = await axios.post(
-          "http://localhost:5000/api/files/avatars",
-          avatarFileUploadForm,
+        // อัปโหลดรูปภาพ
+        const uploadResponse = await axios.post(
+          "/api/users/avatar",
+          avatarFormData,
           {
             headers: {
               "Content-Type": "multipart/form-data",
             },
+            withCredentials: true
           }
         );
 
-        if (avatarFileUploadResponse.status !== 200) {
-          setError("Error uploading avatar file");
+        if (uploadResponse.data.status === "success") {
+          avatarUrl = uploadResponse.data.avatarUrl;
+        } else {
+          setError("Error uploading avatar");
+          setIsLoading(false);
           return;
         }
-
-        console.log("avatarFileUploadResponse.data.url:", avatarFileUploadResponse.data.url);
-        avatarUrl = avatarFileUploadResponse.data.url;
-      } catch (err) {
-        console.error("Error uploading avatar:", err);
-        setError("Error uploading avatar file");
-        return;
       }
-      */
+
+      // สร้างข้อมูลที่จะอัปเดต
+      const updateData = {
+        username: formData.username,
+        avatarUrl: avatarUrl
+      };
+
+      // เพิ่มรหัสผ่านหากมีการแก้ไข
+      if (isPasswordEditable && newPassword) {
+        updateData.password = newPassword;
+      }
+
+      // ส่งข้อมูลไปยัง API เพื่อแก้ไขข้อมูลผู้ใช้
+      const updateResponse = await axios.put(
+        "/api/users/profile",
+        updateData,
+        { withCredentials: true }
+      );
+
+      if (updateResponse.data.status === "success") {
+        // อัปเดตข้อมูลใน UserContext
+        setUser({
+          ...user,
+          username: formData.username,
+          avatarUrl: avatarUrl
+        });
+        
+        // กลับไปยังหน้า profile
+        router.push("/profile");
+      } else {
+        setError(updateResponse.data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      setError(error.response?.data?.message || "Error updating profile");
+    } finally {
+      setIsLoading(false);
     }
-
-    // Mock update logic
-    console.log("Updated user data:", {
-      username: formData.username,
-      avatar: avatarUrl,
-      password: isPasswordEditable ? newPassword : formData.password,
-    });
-
-    // Update the formData with the new data
-    setFormData({
-      ...formData,
-      username: formData.username,
-      avatar: avatarUrl,
-      password: isPasswordEditable ? newPassword : formData.password, // Update password only if edited
-      updated_at: new Date().toISOString(),
-    });
-
-    // Navigate back to the profile page
-    router.push("/profile");
   };
 
-  // Handle loading state
+  // แสดงสถานะ loading
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-2xl text-indigo-600 font-semibold">Loading...</div>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
@@ -176,12 +210,17 @@ export default function EditProfilePage() {
             <div className="mb-6 flex flex-col items-center -mt-16">
               <div className="relative w-32 h-32 mb-4">
                 <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 border-4 border-white shadow-md">
-                  {avatarPreview || formData.avatar ? (
-                    <Image
-                      src={avatarPreview || formData.avatar}
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
                       alt="Avatar preview"
-                      layout="fill"
-                      objectFit="cover"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : formData.avatar ? (
+                    <img
+                      src={`${process.env.NEXT_API_URL}/avatars/${formData.avatar}`}
+                      alt="Current avatar"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">

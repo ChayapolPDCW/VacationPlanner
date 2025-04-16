@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(request, { params }) {
   const { slug } = await params;
-  const backendUrl = "http://backend:5000";
+  const backendUrl = "http://backend:5001";
   const targetUrl = backendUrl + "/api/auth/" + slug;
 
   try {

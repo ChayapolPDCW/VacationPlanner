@@ -230,22 +230,35 @@ export default function CreatePlanPage() {
     if (placeAutocompleteRefs.current[dayIndex]) {
       const place = placeAutocompleteRefs.current[dayIndex].getPlace();
       if (place && place.geometry && place.place_id) {
+        console.log("Place added:", place);
+        let photoUrl = "/images/fallback.png";
+        try {
+          if (place.photos && place.photos.length > 0) {
+            photoUrl = place.photos[0].getUrl({ maxWidth: 500, maxHeight: 500 });
+            console.log("Photo URL:", photoUrl);
+          }
+        } catch (error) {
+          console.error("Error getting photo URL:", error);
+          photoUrl = "/images/fallback.png";
+        }
+        
         const newPlace = {
           title: place.name,
           latitude: place.geometry.location.lat(),
           longitude: place.geometry.location.lng(),
-          photoUrl:
-            place.photos && place.photos.length > 0
-              ? place.photos[0].getUrl({ maxWidth: 100, maxHeight: 100 })
-              : "/images/fallback.jpeg",
+          photoUrl: photoUrl,
           googlePlaceId: place.place_id,
           travelTime: "TBD",
+          notes: "", // เพิ่มฟิลด์ notes สำหรับแต่ละสถานที่
         };
 
         const updatedItinerary = [...itinerary];
         updatedItinerary[dayIndex].places.push(newPlace);
         setItinerary(updatedItinerary);
         updateDirections(updatedItinerary);
+        
+        // ตั้งค่า activeDayIndex ให้เป็นวันที่กำลังเพิ่มสถานที่อยู่
+        setActiveDayIndex(dayIndex);
 
         if (placeInputRefs.current[dayIndex]) {
           placeInputRefs.current[dayIndex].value = "";
@@ -267,19 +280,26 @@ export default function CreatePlanPage() {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
 
-    const dayIndex = parseInt(result.source.droppableId, 10);
+    const sourceDay = parseInt(result.source.droppableId);
+    const destinationDay = parseInt(result.destination.droppableId);
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+
+    const newItinerary = [...itinerary];
+    const [removed] = newItinerary[sourceDay].places.splice(sourceIndex, 1);
+    newItinerary[destinationDay].places.splice(destinationIndex, 0, removed);
+
+    setItinerary(newItinerary);
+    setHasUnsavedChanges(true);
+    calculateDirections(newItinerary);
+  };
+  
+  // ฟังก์ชันสำหรับอัปเดต notes ของแต่ละสถานที่
+  const handlePlaceNotesChange = (dayIndex, placeIndex, value) => {
     const updatedItinerary = [...itinerary];
-    const [reorderedPlace] = updatedItinerary[dayIndex].places.splice(
-      result.source.index,
-      1
-    );
-    updatedItinerary[dayIndex].places.splice(
-      result.destination.index,
-      0,
-      reorderedPlace
-    );
+    updatedItinerary[dayIndex].places[placeIndex].notes = value;
     setItinerary(updatedItinerary);
-    updateDirections(updatedItinerary);
+    setHasUnsavedChanges(true);
   };
 
   const handleSubmit = async (e) => {
@@ -311,6 +331,7 @@ export default function CreatePlanPage() {
             longitude: place.longitude,
             photoUrl: place.photoUrl,
             googlePlaceId: place.googlePlaceId,
+            notes: place.notes || "", // เพิ่มข้อมูล notes ของแต่ละสถานที่
           })),
         })),
       };
@@ -528,14 +549,31 @@ export default function CreatePlanPage() {
                                           {...provided.dragHandleProps}
                                           className="flex items-center p-3 border rounded-lg mb-3 bg-gray-50"
                                         >
-                                          <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full mr-4">
+                                          <div 
+                                            className="flex items-center justify-center w-8 h-8 text-white rounded-full mr-4"
+                                            style={{ backgroundColor: dayColors[index % dayColors.length] }}
+                                          >
                                             {placeIndex + 1}
                                           </div>
-                                          <img
-                                            src={place.photoUrl}
-                                            alt={place.title}
-                                            className="w-24 h-24 rounded-lg mr-4"
-                                          />
+                                          {place.photoUrl.includes("maps.googleapis.com") ? (
+                                            <div className="w-24 h-24 rounded-lg mr-4 overflow-hidden bg-gray-200 flex items-center justify-center">
+                                              <img 
+                                                src="/images/fallback.jpeg"
+                                                alt={place.title}
+                                                className="w-full h-full object-cover"
+                                              />
+                                            </div>
+                                          ) : (
+                                            <img
+                                              src={place.photoUrl}
+                                              alt={place.title}
+                                              className="w-24 h-24 rounded-lg mr-4 object-cover"
+                                              onError={(e) => {
+                                                console.error("Image failed to load:", place.photoUrl);
+                                                e.target.src = "/images/fallback.jpeg";
+                                              }}
+                                            />
+                                          )}
                                           <div className="flex-1">
                                             <h4 className="text-md font-medium">
                                               {place.title}
@@ -543,6 +581,15 @@ export default function CreatePlanPage() {
                                             <p className="text-xs text-gray-500 mt-1">
                                               Travel Time to Next Location: {place.travelTime}
                                             </p>
+                                            <div className="mt-2">
+                                              <textarea
+                                                placeholder="Add notes for this place..."
+                                                value={place.notes || ""}
+                                                onChange={(e) => handlePlaceNotesChange(index, placeIndex, e.target.value)}
+                                                className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                rows="2"
+                                              />
+                                            </div>
                                           </div>
                                           <button
                                             onClick={() => handleDeletePlace(index, placeIndex)}
@@ -571,8 +618,9 @@ export default function CreatePlanPage() {
                                     placeholder="Search for a place"
                                     ref={(el) => (placeInputRefs.current[index] = el)}
                                     onFocus={() => setActiveDayIndex(index)}
-                                    onBlur={() => setActiveDayIndex(null)}
-                                    className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                                    // ไม่ตั้งค่า activeDayIndex เป็น null เมื่อ blur เพื่อให้ยังคงแสดงเฉพาะวันที่กำลังทำงานอยู่
+                                    className="w-full
+                                     p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                                   />
                                 </Autocomplete>
                               </div>
@@ -642,11 +690,11 @@ export default function CreatePlanPage() {
                         .flatMap((day, dayIndex) =>
                           day.places.map((place, placeIndex) => (
                             <Marker
-                              key={`${dayIndex}-${placeIndex}`}
+                              key={`marker-${dayIndex}-${placeIndex}`}
                               position={{ lat: place.latitude, lng: place.longitude }}
                               icon={{
                                 path: window.google.maps.SymbolPath.CIRCLE,
-                                fillColor: dayColors[dayIndex % dayColors.length],
+                                fillColor: dayColors[activeDayIndex % dayColors.length],
                                 fillOpacity: 1,
                                 strokeColor: "#FFFFFF",
                                 strokeWeight: 2,
@@ -675,7 +723,7 @@ export default function CreatePlanPage() {
                               options={{
                                 polylineOptions: {
                                   strokeColor:
-                                    dayColors[parseInt(dayIndex) % dayColors.length],
+                                    dayColors[dayIndex % dayColors.length],
                                   strokeOpacity: 0.8,
                                   strokeWeight: 5,
                                 },

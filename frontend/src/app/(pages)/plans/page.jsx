@@ -36,6 +36,7 @@ export default function PlansPage() {
           let index = 1;
           // แปลงข้อมูลให้อยู่ในรูปแบบที่เหมาะสมสำหรับ PlanCard
           const formattedPlans = plansData.map((plan) => {
+            console.log("Plan with photo:", plan); // ตรวจสอบข้อมูลที่ได้รับจาก backend
             return {
               id: index++,
               planId: plan.id,
@@ -43,7 +44,7 @@ export default function PlansPage() {
               startDate: plan.startDate,
               endDate: plan.endDate,
               totalLike: plan.totalLike,
-              photoUrl: plan.photoUrl,
+              photoUrl: plan.photoUrl, // ตรวจสอบว่าได้รับข้อมูล photoUrl หรือไม่
               user: {
                 username: plan.user?.username || "Unknown",
               },
@@ -95,6 +96,7 @@ export default function PlansPage() {
 
           let index = 1;
           const formattedBookmarks = bookmarkedTravelPlans.map((plan) => {
+            console.log("Bookmarked plan with photo:", plan); // ตรวจสอบข้อมูลที่ได้รับจาก backend
             return {
               id: index++,
               planId: plan.id,
@@ -102,7 +104,7 @@ export default function PlansPage() {
               startDate: plan.startDate,
               endDate: plan.endDate,
               totalLike: plan.totalLike,
-              photoUrl: plan.photoUrl,
+              photoUrl: plan.photoUrl, // ตรวจสอบว่าได้รับข้อมูล photoUrl หรือไม่
               user: {
                 username: plan.user?.username || "Unknown",
               },

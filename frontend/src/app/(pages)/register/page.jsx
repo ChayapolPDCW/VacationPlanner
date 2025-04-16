@@ -124,7 +124,7 @@ export default function RegisterPage() {
                 avatarFileUploadForm.append('avatarFile', avatarFile);
                 
                 const avatarFileUploadResponse = await axios.post(
-                    'http://localhost:5000/api/files/avatars',
+                    `${process.env.NEXT_API_URL}/api/files/avatars`,
                     avatarFileUploadForm,
                     {
                         headers: {
@@ -142,7 +142,7 @@ export default function RegisterPage() {
             }
 
             const response = await axios.post(
-                "http://localhost:5000/api/auth/register", {
+                `${process.env.NEXT_API_URL}/api/auth/register`, {
                     username: formData.username,
                     email: formData.email,
                     password: formData.password,

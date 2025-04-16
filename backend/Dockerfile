@@ -20,6 +20,9 @@ COPY . .
 
 RUN npx prisma generate
 
+# ติดตั้ง bcrypt สำหรับการเข้ารหัสรหัสผ่าน
+RUN npm install bcrypt
+
 CMD ["npm", "run", "dev"]
 
 FROM base AS prod

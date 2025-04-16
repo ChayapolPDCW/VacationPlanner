@@ -40,7 +40,7 @@ export default function LoginPage() {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/auth/login",
+                `${process.env.NEXT_API_URL}/api/auth/login`,
                 {
                     email: formData.email,
                     password: formData.password,
