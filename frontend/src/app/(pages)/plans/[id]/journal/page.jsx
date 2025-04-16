@@ -271,7 +271,7 @@ export default function JournalDetailPage() {
           {/* Centered Title and Info */}
           <div className="text-center">
             <h1 className="text-5xl font-bold text-indigo-500 drop-shadow-lg font-gealova">
-              {plan.cityTitle} Journal
+              {plan.title} Journal
             </h1>
             <p className="text-gray-600 mt-2 italic">
               Created on {format(new Date(journal.createdAt), "d MMMM yyyy")}
