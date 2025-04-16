@@ -1,165 +1,165 @@
-// <https://www.prisma.io/docs/orm/reference/prisma-schema-reference>
-// <https://www.postgresql.org/docs/current/datatype.html>
+  // <https://www.prisma.io/docs/orm/reference/prisma-schema-reference>
+  // <https://www.postgresql.org/docs/current/datatype.html>
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
 
-// <https://www.prisma.io/docs/orm/reference/prisma-schema-reference#binarytargets-options>
-// <https://www.prisma.io/docs/orm/reference/environment-variables-reference#cli-binary-targets>
-generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
-  output        = "../src/generated/prisma-client"
-}
+  // <https://www.prisma.io/docs/orm/reference/prisma-schema-reference#binarytargets-options>
+  // <https://www.prisma.io/docs/orm/reference/environment-variables-reference#cli-binary-targets>
+  generator client {
+    provider      = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+    output        = "../src/generated/prisma-client"
+  }
 
-// generator joi {
-//   provider = "prisma-joi-generator"
-//   output   = "../src/generated/joi"
-// }
+  // generator joi {
+  //   provider = "prisma-joi-generator"
+  //   output   = "../src/generated/joi"
+  // }
 
-enum Visibility {
-  PUBLIC
-  PRIVATE
-}
+  enum Visibility {
+    PUBLIC
+    PRIVATE
+  }
 
-// TODO:  @frontend:  Implement avatar image defaults
-// If null, check the default '/public/images/default-avatar.png' in the frontend
-model User {
-  id              Int      @default(autoincrement())
-  username        String   @unique @db.VarChar(100)
-  email           String   @unique @db.VarChar(100)
-  password        String   @db.VarChar(255)
-  avatarUrl       String?  @map("avatar_url") @db.VarChar(255)
-  experienceLevel Int      @default(0) @map("rank")
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()
+  // TODO:  @frontend:  Implement avatar image defaults
+  // If null, check the default '/public/images/default-avatar.png' in the frontend
+  model User {
+    id              Int      @default(autoincrement())
+    username        String   @unique @db.VarChar(100)
+    email           String   @unique @db.VarChar(100)
+    password        String   @db.VarChar(255)
+    avatarUrl       String?  @map("avatar_url") @db.VarChar(255)
+    experienceLevel Int      @default(0) @map("rank")
+    updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp()
 
-  travelPlans           TravelPlan[]
-  bookmarkedTravelPlans TravelPlanBookmark[]
-  likedTravelPlans      TravelPlanLike[]
+    travelPlans           TravelPlan[]
+    bookmarkedTravelPlans TravelPlanBookmark[]
+    likedTravelPlans      TravelPlanLike[]
 
-  @@id([id])
-  @@map("users")
-}
+    @@id([id])
+    @@map("users")
+  }
 
-model TravelPlan {
-  id         Int        @default(autoincrement())
-  user       User       @relation(fields: [authorId], references: [id])
-  authorId   Int        @map("author_id")
-  title      String     @db.VarChar(100)
-  cityTitle  String     @db.Text @map("city_title")
-  notes      String     @db.Text
-  startDate  DateTime   @map("start_date") @db.Date
-  endDate    DateTime   @map("end_date") @db.Date
-  visibility Visibility @default(PRIVATE)
-  updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamp()
+  model TravelPlan {
+    id         Int        @default(autoincrement())
+    user       User       @relation(fields: [authorId], references: [id])
+    authorId   Int        @map("author_id")
+    title      String     @db.VarChar(100)
+    cityTitle  String     @db.Text @map("city_title")
+    notes      String     @db.Text
+    startDate  DateTime   @map("start_date") @db.Date
+    endDate    DateTime   @map("end_date") @db.Date
+    visibility Visibility @default(PRIVATE)
+    updatedAt  DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamp()
 
-  journal           TravelPlanJournal?
-  destinations      TravelPlanDestination[]
-  bookmarkedByUsers TravelPlanBookmark[]
-  likedByUsers      TravelPlanLike[]
-  placeNotes        PlaceNote[]
+    journal           TravelPlanJournal?
+    destinations      TravelPlanDestination[]
+    bookmarkedByUsers TravelPlanBookmark[]
+    likedByUsers      TravelPlanLike[]
+    placeNotes        PlaceNote[]
 
-  @@id([id])
-  @@map("travel_plans")
-}
+    @@id([id])
+    @@map("travel_plans")
+  }
 
-// TODO:  @backend: Implement the validation logic on inserting 'rating' to CHECK (rating BETWEEN 0 AND 10)
-// <https://www.prisma.io/docs/orm/more/help-and-troubleshooting/check-constraints>
-model TravelPlanJournal {
-  id           Int        @default(autoincrement())
-  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
-  travelPlanId Int        @unique @map("travel_plan_id")
-  notes        String     @db.Text
-  futureTip    String     @db.Text @map("future_tip")
-  favNotes     String     @db.Text @map("fav_notes")
-  rating       Int
-  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()
+  // TODO:  @backend: Implement the validation logic on inserting 'rating' to CHECK (rating BETWEEN 0 AND 10)
+  // <https://www.prisma.io/docs/orm/more/help-and-troubleshooting/check-constraints>
+  model TravelPlanJournal {
+    id           Int        @default(autoincrement())
+    travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+    travelPlanId Int        @unique @map("travel_plan_id")
+    notes        String     @db.Text
+    futureTip    String     @db.Text @map("future_tip")
+    favNotes     String     @db.Text @map("fav_notes")
+    rating       Int
+    updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()
 
-  placeNotes JournalPlaceNote[]
+    placeNotes JournalPlaceNote[]
 
-  @@id([id])
-  @@map("travel_plan_journals")
-}
+    @@id([id])
+    @@map("travel_plan_journals")
+  }
 
-model TravelPlanDestination {
-  id              Int        @default(autoincrement())
-  travelPlan      TravelPlan @relation(fields: [travelPlanId], references: [id])
-  travelPlanId    Int        @map("travel_plan_id")
-  title           String     @db.VarChar(255)
-  latitude        Float      @db.DoublePrecision
-  longitude       Float      @db.DoublePrecision
-  photoUrl        String?    @map("photo_url") @db.Text
-  googlePlaceId   String     @map("google_place_id") @db.VarChar(255)
-  startDate       DateTime   @map("start_date") @db.Date
-  dailyVisitOrder Int        @map("daily_visit_order")
-  updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp()
+  model TravelPlanDestination {
+    id              Int        @default(autoincrement())
+    travelPlan      TravelPlan @relation(fields: [travelPlanId], references: [id])
+    travelPlanId    Int        @map("travel_plan_id")
+    title           String     @db.VarChar(255)
+    latitude        Float      @db.DoublePrecision
+    longitude       Float      @db.DoublePrecision
+    photoUrl        String?    @map("photo_url") @db.Text
+    googlePlaceId   String     @map("google_place_id") @db.VarChar(255)
+    startDate       DateTime   @map("start_date") @db.Date
+    dailyVisitOrder Int        @map("daily_visit_order")
+    updatedAt       DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp()
 
-  attachments TravelPlanDestinationAttachment[]
+    attachments TravelPlanDestinationAttachment[]
 
-  @@id([id])
-  @@map("travel_plan_destinations")
-}
+    @@id([id])
+    @@map("travel_plan_destinations")
+  }
 
-model TravelPlanDestinationAttachment {
-  id                      Int                   @default(autoincrement())
-  travelPlanDestination   TravelPlanDestination @relation(fields: [travelPlanDestinationId], references: [id])
-  travelPlanDestinationId Int                   @map("travel_plan_destination_id")
-  url                     String                @db.VarChar(255)
-  order                   Int
-  updatedAt               DateTime              @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamp()
+  model TravelPlanDestinationAttachment {
+    id                      Int                   @default(autoincrement())
+    travelPlanDestination   TravelPlanDestination @relation(fields: [travelPlanDestinationId], references: [id])
+    travelPlanDestinationId Int                   @map("travel_plan_destination_id")
+    url                     String                @db.VarChar(255)
+    order                   Int
+    updatedAt               DateTime              @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt               DateTime              @default(now()) @map("created_at") @db.Timestamp()
 
-  @@id([id])
-  @@map("travel_plan_destination_attachments")
-}
+    @@id([id])
+    @@map("travel_plan_destination_attachments")
+  }
 
-model TravelPlanBookmark {
-  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
-  travelPlanId Int        @map("travel_plan_id")
-  user         User       @relation(fields: [userId], references: [id])
-  userId       Int        @map("user_id")
+  model TravelPlanBookmark {
+    travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+    travelPlanId Int        @map("travel_plan_id")
+    user         User       @relation(fields: [userId], references: [id])
+    userId       Int        @map("user_id")
 
-  @@id([travelPlanId, userId])
-  @@map("travel_plan_bookmarks")
-}
+    @@id([travelPlanId, userId])
+    @@map("travel_plan_bookmarks")
+  }
 
-model TravelPlanLike {
-  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
-  travelPlanId Int        @map("travel_plan_id")
-  user         User       @relation(fields: [userId], references: [id])
-  userId       Int        @map("user_id")
+  model TravelPlanLike {
+    travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id])
+    travelPlanId Int        @map("travel_plan_id")
+    user         User       @relation(fields: [userId], references: [id])
+    userId       Int        @map("user_id")
 
-  @@id([travelPlanId, userId])
-  @@map("travel_plan_likes")
-}
+    @@id([travelPlanId, userId])
+    @@map("travel_plan_likes")
+  }
 
-model JournalPlaceNote {
-  id        Int      @id @default(autoincrement())
-  journalId Int      @map("journal_id")
-  placeId   String   @map("place_id") @db.VarChar(255)
-  notes     String   @db.Text
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+  model JournalPlaceNote {
+    id        Int      @id @default(autoincrement())
+    journalId Int      @map("journal_id")
+    placeId   String   @map("place_id") @db.VarChar(255)
+    notes     String   @db.Text
+    updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
 
-  journal TravelPlanJournal @relation(fields: [journalId], references: [id], onDelete: Cascade)
+    journal TravelPlanJournal @relation(fields: [journalId], references: [id], onDelete: Cascade)
 
-  @@map("journal_place_notes")
-}
+    @@map("journal_place_notes")
+  }
 
-model PlaceNote {
-  id           Int        @id @default(autoincrement())
-  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id], onDelete: Cascade)
-  travelPlanId Int        @map("travel_plan_id")
-  placeId      String     @map("place_id") @db.VarChar(255)
-  notes        String     @db.Text
-  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
-  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()
+  model PlaceNote {
+    id           Int        @id @default(autoincrement())
+    travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id], onDelete: Cascade)
+    travelPlanId Int        @map("travel_plan_id")
+    placeId      String     @map("place_id") @db.VarChar(255)
+    notes        String     @db.Text
+    updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamp()
+    createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamp()
 
-  @@map("place_notes")
-}
+    @@map("place_notes")
+  }

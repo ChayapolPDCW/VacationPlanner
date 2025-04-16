@@ -423,7 +423,7 @@ export default function DuplicatePlanPage() {
         startDate: format(formData.start_date, "yyyy-MM-dd"),
         endDate: format(formData.end_date, "yyyy-MM-dd"),
         visibility: formData.visibility,
-        notes: formData.notes,
+        notes: formData.notes || "",
         itinerary: formattedItinerary,
       };
 
@@ -663,7 +663,7 @@ export default function DuplicatePlanPage() {
                   </DragDropContext>
 
                   {/* Note Section for the Entire Plan */}
-                  <div className="mt-6">
+                  {/* <div className="mt-6">
                     <h2 className="text-xl font-semibold text-black mb-2">
                       Notes
                     </h2>
@@ -675,7 +675,7 @@ export default function DuplicatePlanPage() {
                       className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
                       rows="4"
                     />
-                  </div>
+                  </div> */}
                 </div>
                 
                 {/* Visibility Checkbox and Save Plan Button */}
