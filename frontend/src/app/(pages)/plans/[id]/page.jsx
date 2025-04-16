@@ -162,6 +162,30 @@ export default function PlanDetail() {
     }
   };
 
+  // Function to calculate travel times without updating the plan state
+  const calculateTravelTimes = useCallback((day, dayIndex, result) => {
+    if (!result || !result.routes || !result.routes[0] || !result.routes[0].legs) {
+      return;
+    }
+    
+    const legs = result.routes[0].legs;
+    const places = day.places;
+    
+    // Create a temporary array to store travel times
+    const travelTimes = [];
+    
+    // Calculate travel time for each leg
+    legs.forEach((leg, index) => {
+      if (index < places.length - 1) {
+        // Include both duration and distance like in create plan page
+        travelTimes.push(`${leg.duration.text}, ${leg.distance.text}`);
+      }
+    });
+    
+    // Return the travel times array
+    return travelTimes;
+  }, []);
+
   const updateDirections = useCallback((itinerary) => {
     if (typeof window === "undefined" || !window.google) return;
 
@@ -193,6 +217,8 @@ export default function PlanDetail() {
         (result, status) => {
           if (status === window.google.maps.DirectionsStatus.OK) {
             newDirections[dayIndex] = result;
+            // Store travel times in a data attribute that can be accessed in the UI
+            newDirections[dayIndex].travelTimes = calculateTravelTimes(day, dayIndex, result);
           } else {
             console.error("Directions request failed:", status);
             newDirections[dayIndex] = null;
@@ -201,7 +227,17 @@ export default function PlanDetail() {
         }
       );
     });
-  }, []);
+  }, [calculateTravelTimes]);
+
+  // Calculate directions when plan data and map are loaded
+  useEffect(() => {
+    if (plan && plan.itinerary && isMapLoaded && isClient) {
+      // Only calculate directions if they haven't been calculated yet
+      if (Object.keys(directions).length === 0) {
+        updateDirections(plan.itinerary);
+      }
+    }
+  }, [plan, isMapLoaded, isClient, directions, updateDirections]);
 
   const handleLike = async () => {
     // setLiked((prev) => !prev);
@@ -386,7 +422,9 @@ export default function PlanDetail() {
                                 </h4>
                                 <p className="text-xs text-gray-500 mt-1">
                                   Travel Time to Next Location:{" "}
-                                  {place.travelTime}
+                                  {placeIndex < day.places.length - 1 ? 
+                                    directions[index.toString()]?.travelTimes?.[placeIndex] || "--" : 
+                                    "N/A"}
                                 </p>
                                 {place.notes && (
                                   <div className="mt-2 bg-indigo-50 p-3 rounded-md border border-indigo-100">

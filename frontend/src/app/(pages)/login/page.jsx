@@ -88,7 +88,7 @@ export default function LoginPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                             required
                         />
                     </div>
@@ -102,20 +102,20 @@ export default function LoginPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-700"
                             required
                         />
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                        className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700"
                     >
                         Login
                     </button>
                 </form>
                 <p className="mt-4 text-center">
                     Don’t have an account?{" "}
-                    <a href="/register" className="text-blue-600 hover:underline">
+                    <a href="/register" className="text-indigo-600 hover:underline">
                         Register
                     </a>
                 </p>

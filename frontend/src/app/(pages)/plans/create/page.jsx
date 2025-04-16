@@ -99,7 +99,7 @@ export default function CreatePlanPage() {
   const handleCityTitleSubmit = () => {
     const place = autocompleteRef.current?.getPlace();
     if (!formData.cityTitle || !place || !place.formatted_address) {
-      setError("Please select a valid city from the suggestions111.");
+      setError("Please select a valid city from the suggestions.");
       return;
     }
 
@@ -291,7 +291,7 @@ export default function CreatePlanPage() {
 
     setItinerary(newItinerary);
     setHasUnsavedChanges(true);
-    calculateDirections(newItinerary);
+    updateDirections(newItinerary);
   };
   
   // ฟังก์ชันสำหรับอัปเดต notes ของแต่ละสถานที่
@@ -664,7 +664,7 @@ export default function CreatePlanPage() {
                       </label>
                       <button
                         onClick={handleSubmit}
-                        className="w-full bg-indigo-400 text-white py-3 mt-2 shadow-lg rounded-lg hover:bg-indigo-600 transition-colors duration-200"
+                        className="w-full bg-indigo-600 text-white py-3 mt-2 shadow-lg rounded-lg hover:bg-indigo-700 transition-colors duration-200"
                       >
                         Save Plan
                       </button>

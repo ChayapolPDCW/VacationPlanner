@@ -185,7 +185,7 @@ export default function RegisterPage() {
                             )}
                         </div>
                     </div>
-                    <label className="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                    <label className="cursor-pointer bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">
                         Upload Avatar
                         <input
                             name="avatar"
@@ -210,7 +210,7 @@ export default function RegisterPage() {
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                             required
                         />
                     </div>
@@ -224,7 +224,7 @@ export default function RegisterPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                             required
                         />
                     </div>
@@ -238,7 +238,7 @@ export default function RegisterPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                             required
                         />
                     </div>
@@ -252,13 +252,13 @@ export default function RegisterPage() {
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
                             required
                         />
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
+                        className="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700"
                     >
                         Register
                     </button>
@@ -270,7 +270,7 @@ export default function RegisterPage() {
                 </form>
                 <p className="mt-4 text-center">
                     Already have an account?{" "}
-                    <a href="/login" className="text-blue-600 hover:underline">
+                    <a href="/login" className="text-indigo-600 hover:underline">
                         Login
                     </a>
                 </p>
