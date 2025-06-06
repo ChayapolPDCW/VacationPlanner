@@ -108,5 +108,3 @@ docker compose up --build
 - Dujrawee L.
 
 ---
-
-> Developed for learning and practicing Fullstack Web Development
