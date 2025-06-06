@@ -29,7 +29,7 @@ VacationPlanner/
 ### 1. Clone the Repository
 
 ```sh
-git clone <repo-url>
+git clone <https://github.com/ChayapolPDCW/VacationPlanner.git>
 cd VacationPlanner
 ```
 
@@ -104,8 +104,8 @@ docker compose up --build
 
 ## Contributors
 
-- [Your Name]
-- [Other Contributors]
+- Chayapol P.
+- Dujrawee L.
 
 ---
 
